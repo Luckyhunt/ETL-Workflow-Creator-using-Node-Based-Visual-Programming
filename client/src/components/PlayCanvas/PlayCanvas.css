@@ -1,0 +1,20 @@
+.playcanvas-container {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    /* position: relative; */
+    z-index: 1;
+}
+
+.playcanvas {
+    position: relative;
+    width: 2000px;
+    height: 2000px;
+    background-size: 30px 30px;
+    background-image: radial-gradient(circle, var(--color-text-dark) 1px, var(--color-bg-1) 1px);
+    cursor: grab;
+}
+
+.playcanvas.grabbing {
+    cursor: grabbing;
+}

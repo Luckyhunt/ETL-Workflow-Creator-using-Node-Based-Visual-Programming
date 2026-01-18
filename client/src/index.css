@@ -23,6 +23,9 @@
 	--color-bg-2: #f2f5fd;
 	--color-bg-3: #e4e9f7;
 	--color-bg-dark: #0f172a;
+
+	--color-delete-red: #990d38;
+	--color-delete-red-light: #e73c5c;
 }
 
 /* Common styles */

@@ -1,0 +1,16 @@
+.edge {
+    fill: none;
+    stroke: var(--color-accent-2);
+    stroke-width: 2px;
+    stroke-dashoffset: 10,5;
+    animation: flow 1s linear infinite;
+}
+
+@keyframes flow {
+    from {
+        stroke-dashoffset: 30;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}

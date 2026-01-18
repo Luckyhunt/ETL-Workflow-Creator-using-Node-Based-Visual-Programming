@@ -29,8 +29,8 @@
 
 .previewer .toggle-btn {
     position: relative;
+    left: -40px;
 }
 
 .previewer.close .toggle-btn {
-    left: -40px;
 }

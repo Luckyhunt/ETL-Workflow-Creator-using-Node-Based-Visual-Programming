@@ -12,11 +12,7 @@ import { HiLightningBolt } from "react-icons/hi";
 const Sidebar = () => {
 
     const [open, setOpen] = useState<boolean>(true)
-<<<<<<< HEAD
     const { workflow, addNode } = useWorkflow()
-=======
-    const { addNode } = useWorkflow()
->>>>>>> 105a1b92e8841836cf971b7309f0fba1dffb7fa9
 
     const createNewInputNode = () => {
         const newInputNode: WorkflowNode = {
@@ -81,11 +77,7 @@ const Sidebar = () => {
             <Link to="/">
                 <div className="sidebar-logo logo-container">
                     <img src={Logo} alt="" />
-<<<<<<< HEAD
                     <span className="sidebar-logo-name">NodeFlow</span> <br />
-=======
-                    <span className="navbar-logo-name">NodeFlow</span> <br />
->>>>>>> 105a1b92e8841836cf971b7309f0fba1dffb7fa9
                 </div>
             </Link>
             <div className="sidebar-contents">

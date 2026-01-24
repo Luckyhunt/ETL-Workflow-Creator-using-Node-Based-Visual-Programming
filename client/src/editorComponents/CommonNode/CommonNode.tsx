@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, type CSSProperties, type FC } from "react"
 import type { Position, NodeProps } from "../../types";
-import { useWorkflow } from "../../contexts/WorkflowContext";
+import { useWorkflow } from "../../contexts/useWorkflow";
 import InputNode from "../InputNode/InputNode";
 import TransformNode from "../TransformNode/TransformNode";
 import "./CommonNode.css"
@@ -34,6 +34,26 @@ const CommonNode: FC<NodeProps> = ({ node }) => {
     const handlePortMouseUp = (e: React.MouseEvent) => {
         e.stopPropagation()
         if (workflow.activeSourceNode) {
+            // Validate connection: prevent invalid flows
+            // Don't allow output -> anything (output should be end point)
+            if (workflow.activeSourceNode.type === 'output') {
+                console.log('Cannot connect from output node');
+                return;
+            }
+            
+            // Don't allow input -> input
+            if (workflow.activeSourceNode.type === 'input' && node.type === 'input') {
+                console.log('Cannot connect input to input');
+                return;
+            }
+            
+            // Don't allow a node to connect to itself
+            if (workflow.activeSourceNode._id === node._id) {
+                console.log('Cannot connect node to itself');
+                return;
+            }
+            
+            // Create the edge
             addEdge({
                 _id: uuidv4(),
                 source: workflow.activeSourceNode,
@@ -44,6 +64,7 @@ const CommonNode: FC<NodeProps> = ({ node }) => {
     }
 
     const handleNodeSelection = (e: React.MouseEvent) => {
+        e.stopPropagation();
         setSelectedNode(node)
     }
 
@@ -103,12 +124,14 @@ const CommonNode: FC<NodeProps> = ({ node }) => {
             onClick={handleNodeSelection}
         >
             {/* Node ports */}
+            {/* Input ports - allow receiving connections (left side) */}
             {node.type !== 'input' && (
                 <div
                     className="common-node-port input-port"
                     onMouseUp={handlePortMouseUp}
                 ></div>
             )}
+            {/* Output ports - allow sending connections (right side) */}
             {node.type !== 'output' && (
                 <div
                     className="common-node-port output-port"

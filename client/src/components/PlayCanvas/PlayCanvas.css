@@ -10,8 +10,10 @@
     position: relative;
     width: 2000px;
     height: 2000px;
+    background: var(--color-bg-2);
     background-size: 30px 30px;
-    background-image: radial-gradient(circle, var(--color-text-dark) 1px, var(--color-bg-1) 1px);
+    background-image: 
+        radial-gradient(circle, var(--color-text-dark) 1px, transparent 1px);
     cursor: grab;
 }
 

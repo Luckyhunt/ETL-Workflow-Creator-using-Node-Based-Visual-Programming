@@ -1,8 +1,9 @@
 import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { Link } from "react-router"
-import type { Workflow, WorkflowNode } from "../../types"
-import { useWorkflow } from "../../contexts/WorkflowContext"
+import type { WorkflowNode } from "../../types"
+import { TransformType } from "../../types"
+import { useWorkflow } from "../../contexts/useWorkflow"
 import Logo from "../../images/logo.svg"
 import "./Sidebar.css"
 import { LuFileInput } from "react-icons/lu"
@@ -37,9 +38,9 @@ const Sidebar = () => {
             type: "transform",
             position: {x: 500, y: 100},
             data: {
-                transformType: 'NA',
-                column: 'NA',
-                condition: 'NA'
+                transformType: TransformType.FILTER,
+                columnName: '',
+                condition: ''
             }
         }
 

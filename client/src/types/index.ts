@@ -2,16 +2,18 @@ export type NodeType = 'input' | 'transform' | 'output'
 
 export type FileFormat = 'csv' | 'json' | 'xml' | 'NA'
 
-export enum TransformType {
-    FILTER = "FILTER",
-    DROP_COLUMN = "DROP_COLUMN",
-    RENAME_COLUMN = "RENAME_COLUMN",
-    NORMALIZE = "NORMALIZE",
-    FILL_NA = "FILL_NA",
-    TRIM = "TRIM",
-    TO_UPPER = "TO_UPPER",
-    TO_LOWER = "TO_LOWER"
-}
+export const TransformType = {
+    FILTER: "FILTER",
+    DROP_COLUMN: "DROP_COLUMN",
+    RENAME_COLUMN: "RENAME_COLUMN",
+    NORMALIZE: "NORMALIZE",
+    FILL_NA: "FILL_NA",
+    TRIM: "TRIM",
+    TO_UPPER: "TO_UPPER",
+    TO_LOWER: "TO_LOWER"
+} as const;
+
+export type TransformType = typeof TransformType[keyof typeof TransformType];
 
 export interface Position {
     x: number

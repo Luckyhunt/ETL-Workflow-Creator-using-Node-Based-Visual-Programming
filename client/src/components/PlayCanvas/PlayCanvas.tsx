@@ -1,6 +1,6 @@
 import { useState } from "react"
 import "./PlayCanvas.css"
-import { useWorkflow } from "../../contexts/WorkflowContext"
+import { useWorkflow } from "../../contexts/useWorkflow"
 import CommonNode from "../../editorComponents/CommonNode/CommonNode"
 import Edge from "../../editorComponents/Edge/Edge"
 
@@ -69,9 +69,9 @@ const PlayCanvas = () => {
         }
     }
 
-    let sourceX = workflow.activeSourceNode ? workflow.activeSourceNode.position.x + 300 : 0
-    let sourceY = workflow.activeSourceNode ? workflow.activeSourceNode.position.y + 25 : 0
-    let curvature = 75
+    const sourceX = workflow.activeSourceNode ? workflow.activeSourceNode.position.x + 300 : 0
+    const sourceY = workflow.activeSourceNode ? workflow.activeSourceNode.position.y + 25 : 0
+    const curvature = 75
     const pathData = `M ${sourceX} ${sourceY} C ${sourceX + curvature} ${sourceY}, ${mousePos.x - curvature} ${mousePos.y}, ${mousePos.x} ${mousePos.y}`
 
     return (
@@ -87,9 +87,9 @@ const PlayCanvas = () => {
             >
                 <svg className="playcanvas-svg-layer" width="2000" height="2000">
                     {
-                        workflow.definition.edges.map(edge => {
-                            const sourceNode = workflow.definition.nodes.find(node => node._id === edge.source._id)
-                            const targetNode = workflow.definition.nodes.find(node => node._id === edge.target._id)
+                        workflow.definition.edges.map((edge) => {
+                            const sourceNode = workflow.definition.nodes.find((node) => node._id === edge.source._id)
+                            const targetNode = workflow.definition.nodes.find((node) => node._id === edge.target._id)
 
                             if (!sourceNode || !targetNode) return null
 
@@ -125,7 +125,7 @@ const PlayCanvas = () => {
                 </svg>
 
                 {
-                    workflow.definition.nodes.map(node => <CommonNode key={node._id} node={node} />)
+                    workflow.definition.nodes.map((node) => <CommonNode key={node._id} node={node} />)
                 }
             </div>
         </div>

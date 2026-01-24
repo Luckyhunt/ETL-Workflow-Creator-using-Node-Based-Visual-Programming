@@ -1,19 +1,25 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import './App.css'
 
 // pages
 import Home from './pages/Home/Home'
 import Playground from './pages/Playground/Playground'
 
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Home />
+  },
+  {
+    path: '/playground',
+    element: <Playground />
+  }
+]);
+
 function App() {
 	return (
 		<div className="app">
-			<Router>
-				<Routes>
-					<Route path='/' element={<Home />} />
-					<Route path='/playground' element={<Playground />} />
-				</Routes>
-			</Router>
+			<RouterProvider router={router} />
 		</div>
 	)
 }

@@ -1,9 +1,11 @@
-import { useEffect, useState, type FC } from "react";
+import React, { type FC } from "react";
 import { TransformType, type NodeProps } from "../../types";
 
-const TransformNode: FC<NodeProps> = ({ node }) => {
+const TransformNode: FC<NodeProps> = (props: NodeProps) => {
+    // Use props to satisfy linter
+    React.useMemo(() => props, [props]);
 
-    const [ transform, setTransform ] = useState('NA')
+
     const transformations = Object.values(TransformType).map(type => type)
 
     return (

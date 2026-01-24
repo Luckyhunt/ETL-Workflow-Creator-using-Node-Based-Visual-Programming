@@ -1,30 +1,35 @@
 .common-node {
     position: absolute;
     user-select: none;
-    border: 1px solid var(--color-accent-1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 10px;
-    background: var(--color-bg-1);
-    /* background: transparent; */
-    /* backdrop-filter: blur(10px); */
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); /* Safari support */
     width: 300px;
-    box-shadow: 0 10px 20px lightgrey;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
     animation-name: appear;
     animation-duration: 0.2s;
     animation-timing-function: ease-in-out;
     animation-iteration-count: 1;
     animation-fill-mode: forwards;
+    transition: all 0.3s ease;
 }
 
 .common-node.selected {
     outline: 2px solid var(--color-accent-1);
+    box-shadow: 0 0 20px rgba(82, 69, 229, 0.5), 0 8px 32px 0 rgba(31, 38, 135, 0.3);
+    transform: scale(1.02);
 }
 
 .common-node-header {
     height: 50px;
-    border-bottom: 1px solid var(--color-accent-1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
     display: flex;
     align-items: center;
     padding: 20px 5px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 9px 9px 0 0;
 }
 
 .common-node-title {
@@ -54,15 +59,21 @@
 .common-node-body {
     padding: 20px;
     display: grid;
+    color: var(--color-text-dark);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0 0 9px 9px;
 }
 
 .common-node-port {
     position: absolute;
     top: 20px;
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: var(--color-accent-2);
+    box-shadow: 0 0 5px rgba(170, 69, 229, 0.7);
+    border: 1px solid white;
+    z-index: 10;
 }
 
 .common-node-port.input-port {

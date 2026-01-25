@@ -4,8 +4,11 @@ import "./InputNode.css"
 
 import { MdOutlineFileUpload } from "react-icons/md"
 import { ImCross } from "react-icons/im"
+import { useWorkflow } from "../../contexts/useWorkflow"
 
 const InputNode: FC<NodeProps> = ({ node }) => {
+    
+    const { updateNode } = useWorkflow();
     
     // node position state
     // const { updateNodePosition } = useWorkflow()
@@ -37,6 +40,15 @@ const InputNode: FC<NodeProps> = ({ node }) => {
         if (fileInputRef.current) {
             fileInputRef.current.value = ""
         }
+        
+        // Reset the node's file data
+        updateNode(node._id, {
+            file: {
+                filename: "",
+                fileContent: "",
+                fileFormat: 'NA'
+            }
+        });
     }
 
     // useEffect(() => {
@@ -97,9 +109,23 @@ const InputNode: FC<NodeProps> = ({ node }) => {
                         name={`file-input-${node._id}`}
                         id={`file-input-${node._id}`}
                         className="common-node-file-input"
-                        onChange={(e) => {
-                            setFile(e.target.files ? e.target.files[0] : null)
-                            console.dir(e.target.files ? e.target.files[0] : null)
+                        onChange={async (e) => {
+                            const selectedFile = e.target.files ? e.target.files[0] : null;
+                            if (selectedFile) {
+                                setFile(selectedFile);
+                                
+                                // Read file content
+                                const fileContent = await selectedFile.text();
+                                
+                                // Update the node's data with file information
+                                updateNode(node._id, {
+                                    file: {
+                                        filename: selectedFile.name,
+                                        fileContent: fileContent,
+                                        fileFormat: selectedFile.name.split('.').pop()?.toLowerCase() || 'NA'
+                                    }
+                                });
+                            }
                         }}
                     />
                     <div

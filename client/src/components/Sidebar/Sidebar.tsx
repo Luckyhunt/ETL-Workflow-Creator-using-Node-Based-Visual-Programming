@@ -9,6 +9,8 @@ import "./Sidebar.css"
 import { LuFileInput } from "react-icons/lu"
 import { IoSettingsOutline } from "react-icons/io5"
 import { HiLightningBolt } from "react-icons/hi";
+import { FaPlay } from "react-icons/fa";
+import { workflowExecutionService } from "../../services/WorkflowExecutionService";
 
 const Sidebar = () => {
 
@@ -63,6 +65,23 @@ const Sidebar = () => {
         addNode(newOutputNode)
     }
 
+    const executeWorkflow = async () => {
+        try {
+            const result = await workflowExecutionService.executeWorkflow(workflow);
+            
+            if (result.success) {
+                alert(`Workflow executed successfully!\nFinal data: ${JSON.stringify(result.data, null, 2)}`);
+                console.log("Execution result:", result);
+            } else {
+                alert(`Workflow execution failed:\n${result.error}`);
+                console.error("Execution error:", result.error);
+            }
+        } catch (error) {
+            console.error("Error executing workflow:", error);
+            alert(`Error executing workflow: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    };
+
     return (
         <div className={open ? "sidebar" : "sidebar close"}>
             <div className="sidebar-btn">
@@ -109,6 +128,14 @@ const Sidebar = () => {
                             </button>
                         </li>
                     </ul>
+                </div>
+                <div className="sidebar-execution">
+                    <button
+                        className="execute-workflow-btn"
+                        onClick={executeWorkflow}
+                    >
+                        <span className="icon">▶</span> Run Workflow
+                    </button>
                 </div>
                 <button
                     onClick={() => {console.dir(workflow)}} 

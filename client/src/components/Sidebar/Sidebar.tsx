@@ -10,6 +10,9 @@ import { LuFileInput } from "react-icons/lu"
 import { IoSettingsOutline } from "react-icons/io5"
 import { HiLightningBolt } from "react-icons/hi";
 import { FaPlay } from "react-icons/fa";
+import { FaShareFromSquare } from "react-icons/fa6";
+import { MdSave } from "react-icons/md";
+import { MdBarChart } from "react-icons/md";
 import { workflowExecutionService } from "../../services/WorkflowExecutionService";
 
 const Sidebar = () => {
@@ -129,17 +132,43 @@ const Sidebar = () => {
                         </li>
                     </ul>
                 </div>
-                <div className="sidebar-execution">
-                    <button
-                        className="execute-workflow-btn"
-                        onClick={executeWorkflow}
-                    >
-                        <span className="icon">▶</span> Run Workflow
-                    </button>
+                <div className="sidebar-part">
+                    <div className="sidebar-part-title">
+                        MANAGEMENT
+                    </div>
+                    <div className="management-primary-action">
+                        <button
+                            className="execute-workflow-btn"
+                            onClick={executeWorkflow}
+                        >
+                            Run Workflow
+                        </button>
+                    </div>
+                    <ul className="management-secondary-actions">
+                        <li className="management-item">
+                            <button>
+                                <span className="icon"><MdSave /></span> Save Workflow
+                            </button>
+                        </li>
+                        <li className="management-item">
+                            <button>
+                                <span className="icon"><FaShareFromSquare /></span> Share
+                            </button>
+                        </li>
+                        <li className="management-item disabled">
+                            <button
+                                onClick={() => {console.dir(workflow)}} 
+                            >
+                                <span className="icon"><MdBarChart /></span> Show graph
+                            </button>
+                        </li>
+                        <li className="management-item destructive">
+                            <button>
+                                <span className="icon">🗑️</span> Delete Draft
+                            </button>
+                        </li>
+                    </ul>
                 </div>
-                <button
-                    onClick={() => {console.dir(workflow)}} 
-                >Show graph</button>
             </div>
         </div>
     )

@@ -93,7 +93,7 @@
 .execute-workflow-btn {
     width: 100%;
     padding: 12px;
-    background-color: #4CAF50;
+    background-color: var(--color-accent-1);
     color: white;
     border: none;
     border-radius: 4px;
@@ -107,13 +107,111 @@
 }
 
 .execute-workflow-btn:hover {
-    background-color: #45a049;
+    background-color: #0000FF;
 }
 
 .execute-workflow-btn:active {
     transform: translateY(1px);
 }
 
-.sidebar-execution .icon {
+.management-primary-action {
+    margin-bottom: 16px;
+}
+
+.management-primary-action .execute-workflow-btn {
+    width: 100%;
+    height: 44px;
+    border-radius: 8px;
     font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.management-secondary-actions {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.management-item {
+    margin: 4px 0;
+    height: 36px;
+}
+
+.management-item button {
+    background: none;
+    border: none;
+    outline: none;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 14px;
+    color: #666666;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.management-item button:hover {
+    color: var(--color-accent-1);
+}
+
+.management-item button:hover .icon {
+    color: var(--color-accent-1);
+}
+
+.management-item button .icon {
+    font-size: 16px;
+    width: auto;
+    height: auto;
+    border: none;
+    background: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666666;
+    transition: color 0.2s;
+}
+
+.management-item.active button {
+    color: #666666;
+}
+
+.management-item.active button .icon {
+    color: #666666;
+}
+
+.management-item.disabled button {
+    color: #999999;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.management-item.disabled button:hover {
+    color: #999999;
+}
+
+.management-item.disabled button:hover .icon {
+    color: #999999;
+}
+
+.management-item.destructive button {
+    color: #666666;
+}
+
+.management-item.destructive button:hover {
+    color: #ff0000;
+}
+
+.management-item.destructive button .icon {
+    color: #666666;
+}
+
+.management-item.destructive button:hover .icon {
+    color: #ff0000;
 }

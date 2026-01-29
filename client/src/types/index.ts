@@ -10,7 +10,16 @@ export const TransformType = {
     FILL_NA: "FILL_NA",
     TRIM: "TRIM",
     TO_UPPER: "TO_UPPER",
-    TO_LOWER: "TO_LOWER"
+    TO_LOWER: "TO_LOWER",
+    // Data type specific transformations
+    CONVERT_TO_STRING: "CONVERT_TO_STRING",
+    CONVERT_TO_NUMERIC: "CONVERT_TO_NUMERIC",
+    ROUND_NUMBERS: "ROUND_NUMBERS",
+    FORMAT_NUMBERS: "FORMAT_NUMBERS",
+    STRIP_WHITESPACE: "STRIP_WHITESPACE",
+    REMOVE_SPECIAL_CHARS: "REMOVE_SPECIAL_CHARS",
+    EXTRACT_NUMBERS: "EXTRACT_NUMBERS",
+    EXTRACT_STRINGS: "EXTRACT_STRINGS"
 } as const;
 
 export type TransformType = typeof TransformType[keyof typeof TransformType];

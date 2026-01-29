@@ -1,4 +1,4 @@
-import type { Workflow, WorkflowNode, WorkflowEdge, NodeType, IFile } from "../types";
+import type { Workflow, WorkflowNode, WorkflowEdge, NodeType, IFile, InputNodeData, TransformNodeData, OutputNodeData } from "../types";
 import { TransformType } from "../types";
 
 // Define data structure for passing between nodes
@@ -23,15 +23,8 @@ export interface ExecutionContext {
   visited: Set<string>;
 }
 
-/**
- * ETL Workflow Execution Engine
- * Implements the complete workflow execution lifecycle
- */
+
 export class WorkflowEngine {
-  
-  /**
-   * Execute a complete workflow from input to output
-   */
   async executeWorkflow(workflow: Workflow): Promise<ExecutionResult> {
     try {
       // 1. Validate the workflow
@@ -293,7 +286,7 @@ export class WorkflowEngine {
    */
   async executeNode(
     node: WorkflowNode, 
-    workflow: Workflow, 
+    workflow: Workflow,
     nodeResults: Record<string, any>
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
@@ -433,6 +426,30 @@ export class WorkflowEngine {
           break;
         case TransformType.TO_LOWER:
           result = this.applyToLowerTransformation(inputData, transformData);
+          break;
+        case TransformType.CONVERT_TO_STRING:
+          result = this.applyConvertToStringTransformation(inputData, transformData);
+          break;
+        case TransformType.CONVERT_TO_NUMERIC:
+          result = this.applyConvertToNumericTransformation(inputData, transformData);
+          break;
+        case TransformType.ROUND_NUMBERS:
+          result = this.applyRoundNumbersTransformation(inputData, transformData);
+          break;
+        case TransformType.FORMAT_NUMBERS:
+          result = this.applyFormatNumbersTransformation(inputData, transformData);
+          break;
+        case TransformType.STRIP_WHITESPACE:
+          result = this.applyStripWhitespaceTransformation(inputData, transformData);
+          break;
+        case TransformType.REMOVE_SPECIAL_CHARS:
+          result = this.applyRemoveSpecialCharsTransformation(inputData, transformData);
+          break;
+        case TransformType.EXTRACT_NUMBERS:
+          result = this.applyExtractNumbersTransformation(inputData, transformData);
+          break;
+        case TransformType.EXTRACT_STRINGS:
+          result = this.applyExtractStringsTransformation(inputData, transformData);
           break;
         default:
           return { 
@@ -815,6 +832,189 @@ export class WorkflowEngine {
     return data.map(row => {
       if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'string') {
         row[columnName] = (row[columnName] as string).toLowerCase();
+      }
+      return row;
+    });
+  }
+  
+  /**
+   * Apply convert to string transformation
+   */
+  private applyConvertToStringTransformation(data: any[], transformData: any): any[] {
+    const { columnName } = transformData;
+    
+    if (!columnName) {
+      return data; // Need to specify a column
+    }
+    
+    return data.map(row => {
+      if (row.hasOwnProperty(columnName)) {
+        row[columnName] = String(row[columnName]);
+      }
+      return row;
+    });
+  }
+  
+  /**
+   * Apply convert to numeric transformation
+   */
+  private applyConvertToNumericTransformation(data: any[], transformData: any): any[] {
+    const { columnName } = transformData;
+    
+    if (!columnName) {
+      return data; // Need to specify a column
+    }
+    
+    return data.map(row => {
+      if (row.hasOwnProperty(columnName)) {
+        const value = row[columnName];
+        if (typeof value === 'string') {
+          // Try to parse as number
+          const numValue = parseFloat(value);
+          if (!isNaN(numValue)) {
+            row[columnName] = numValue;
+          }
+        } else if (typeof value === 'number') {
+          // Already a number, keep as is
+          row[columnName] = value;
+        } else {
+          // Convert other types to number
+          row[columnName] = Number(value);
+        }
+      }
+      return row;
+    });
+  }
+  
+  /**
+   * Apply round numbers transformation
+   */
+  private applyRoundNumbersTransformation(data: any[], transformData: any): any[] {
+    const { columnName, targetValue } = transformData;
+    
+    if (!columnName) {
+      return data; // Need to specify a column
+    }
+    
+    const decimalPlaces = targetValue ? parseInt(targetValue, 10) : 0;
+    
+    return data.map(row => {
+      if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'number') {
+        const value = row[columnName];
+        row[columnName] = Number(value.toFixed(decimalPlaces));
+      }
+      return row;
+    });
+  }
+  
+  /**
+   * Apply format numbers transformation
+   */
+  private applyFormatNumbersTransformation(data: any[], transformData: any): any[] {
+    const { columnName, targetValue } = transformData;
+    
+    if (!columnName) {
+      return data; // Need to specify a column
+    }
+    
+    const decimalPlaces = targetValue ? parseInt(targetValue, 10) : 2;
+    
+    return data.map(row => {
+      if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'number') {
+        const value = row[columnName];
+        row[columnName] = value.toFixed(decimalPlaces);
+      }
+      return row;
+    });
+  }
+  
+  /**
+   * Apply strip whitespace transformation
+   */
+  private applyStripWhitespaceTransformation(data: any[], transformData: any): any[] {
+    const { columnName } = transformData;
+    
+    if (!columnName) {
+      // Strip whitespace from all string values in all columns
+      return data.map(row => {
+        const newRow = { ...row };
+        for (const key in newRow) {
+          if (typeof newRow[key] === 'string') {
+            newRow[key] = (newRow[key] as string).replace(/\s+/g, '');
+          }
+        }
+        return newRow;
+      });
+    }
+
+    // Strip whitespace only from the specified column
+    return data.map(row => {
+      if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'string') {
+        row[columnName] = (row[columnName] as string).replace(/\s+/g, '');
+      }
+      return row;
+    });
+  }
+  
+  /**
+   * Apply remove special characters transformation
+   */
+  private applyRemoveSpecialCharsTransformation(data: any[], transformData: any): any[] {
+    const { columnName, targetValue } = transformData;
+    
+    if (!columnName) {
+      return data; // Need to specify a column
+    }
+    
+    // Default pattern removes everything that's not alphanumeric or space
+    const pattern = targetValue ? new RegExp(targetValue, 'g') : /[^a-zA-Z0-9\s]/g;
+    
+    return data.map(row => {
+      if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'string') {
+        row[columnName] = (row[columnName] as string).replace(pattern, '');
+      }
+      return row;
+    });
+  }
+  
+  /**
+   * Apply extract numbers transformation
+   */
+  private applyExtractNumbersTransformation(data: any[], transformData: any): any[] {
+    const { columnName } = transformData;
+    
+    if (!columnName) {
+      return data; // Need to specify a column
+    }
+    
+    return data.map(row => {
+      if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'string') {
+        // Extract all numbers and join them
+        const numbers = (row[columnName] as string).match(/\d+(?:\.\d+)?/g);
+        if (numbers) {
+          row[columnName] = numbers.join('');
+        } else {
+          row[columnName] = '';
+        }
+      }
+      return row;
+    });
+  }
+  
+  /**
+   * Apply extract strings transformation
+   */
+  private applyExtractStringsTransformation(data: any[], transformData: any): any[] {
+    const { columnName } = transformData;
+    
+    if (!columnName) {
+      return data; // Need to specify a column
+    }
+    
+    return data.map(row => {
+      if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'string') {
+        // Extract all alphabetic characters and spaces
+        row[columnName] = (row[columnName] as string).replace(/[^a-zA-Z\s]/g, '');
       }
       return row;
     });

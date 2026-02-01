@@ -18,7 +18,7 @@ import { workflowExecutionService } from "../../services/WorkflowExecutionServic
 const Sidebar = () => {
 
     const [open, setOpen] = useState<boolean>(true)
-    const { workflow, addNode } = useWorkflow()
+    const { workflow, addNode, deleteDraft, shareWorkflow } = useWorkflow()
 
     const createNewInputNode = () => {
         const newInputNode: WorkflowNode = {
@@ -151,7 +151,22 @@ const Sidebar = () => {
                             </button>
                         </li>
                         <li className="management-item">
-                            <button>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const shareUrl = await shareWorkflow();
+                                        
+                                        // Copy to clipboard
+                                        await navigator.clipboard.writeText(shareUrl);
+                                        
+                                        // Show success notification
+                                        alert(`Workflow shared successfully!\nLink copied to clipboard:\n${shareUrl}`);
+                                    } catch (error) {
+                                        console.error('Error sharing workflow:', error);
+                                        alert('Failed to share workflow. Please try again.');
+                                    }
+                                }}
+                            >
                                 <span className="icon"><FaShareFromSquare /></span> Share
                             </button>
                         </li>
@@ -163,7 +178,13 @@ const Sidebar = () => {
                             </button>
                         </li>
                         <li className="management-item destructive">
-                            <button>
+                            <button
+                                onClick={() => {
+                                    if (window.confirm("Are you sure you want to delete this draft? This action cannot be undone.")) {
+                                        deleteDraft();
+                                    }
+                                }}
+                            >
                                 <span className="icon">🗑️</span> Delete Draft
                             </button>
                         </li>

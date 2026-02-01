@@ -106,6 +106,39 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
     }
 
+    const deleteDraft = () => {
+        // Reset workflow to initial empty state
+        setWorkflow({
+            _id: '',
+            name: '',
+            activeSourceNode: null,
+            selectedNode: null,
+            definition: {
+                nodes: [],
+                edges: []
+            },
+        });
+    }
+
+    const shareWorkflow = async (): Promise<string> => {
+        // Create a shareable representation of the workflow
+        // In a real implementation, this would send to a backend service
+        // For now, we'll create a base64 encoded version of the workflow
+        
+        const workflowData = {
+            ...workflow,
+            // Add timestamp to ensure uniqueness
+            sharedAt: new Date().toISOString()
+        };
+        
+        const jsonString = JSON.stringify(workflowData);
+        const encodedData = btoa(jsonString); // Base64 encode
+        
+        // In a real implementation, this would be an API call to create a shareable link
+        // For demo purposes, we'll return a mock shareable URL
+        return `${window.location.origin}/shared/${encodedData}`;
+    }
+
     return (
         <WorkflowContext.Provider value={{
             workflow,
@@ -116,7 +149,9 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             updateNode,
             updateNodePosition,
             setActiveSourceNode,
-            setSelectedNode
+            setSelectedNode,
+            deleteDraft,
+            shareWorkflow
         }}>
             {children}
         </WorkflowContext.Provider>

@@ -13,7 +13,7 @@
     animation-timing-function: ease-in-out;
     animation-iteration-count: 1;
     animation-fill-mode: forwards;
-    transition: all 0.3s ease;
+    /* transition: all 0.3s ease; */
 }
 
 .common-node.selected {

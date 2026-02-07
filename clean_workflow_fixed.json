@@ -1,0 +1,41 @@
+{
+  "definition": {
+    "nodes": [
+      {
+        "_id": "input_1",
+        "type": "input",
+        "data": {
+          "file": {
+            "filename": "test.csv",
+            "fileContent": "name,age\nJohn,25"
+          }
+        }
+      },
+      {
+        "_id": "transform_1",
+        "type": "transform",
+        "data": {
+          "transformType": "FILTER",
+          "columnName": "age",
+          "condition": "> 20"
+        }
+      },
+      {
+        "_id": "output_1",
+        "type": "output"
+      }
+    ],
+    "edges": [
+      {
+        "_id": "edge_1",
+        "source": {"_id": "input_1"},
+        "target": {"_id": "transform_1"}
+      },
+      {
+        "_id": "edge_2",
+        "source": {"_id": "transform_1"},
+        "target": {"_id": "output_1"}
+      }
+    ]
+  }
+}

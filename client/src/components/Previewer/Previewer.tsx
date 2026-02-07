@@ -2,6 +2,43 @@ import { useState, useRef, useEffect } from "react"
 import { useWorkflow } from "../../contexts/useWorkflow"
 import "./Previewer.css"
 
+// Helper function to parse CSV lines properly handling quoted fields
+const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+        
+        if (char === '"' && !inQuotes) {
+            // Start of quoted field
+            inQuotes = true;
+        } else if (char === '"' && inQuotes) {
+            if (nextChar === '"') {
+                // Escaped quote
+                current += '"';
+                i++; // Skip next quote
+            } else {
+                // End of quoted field
+                inQuotes = false;
+            }
+        } else if (char === ',' && !inQuotes) {
+            // Field separator
+            result.push(current);
+            current = '';
+        } else {
+            // Regular character
+            current += char;
+        }
+    }
+    
+    // Add the last field
+    result.push(current);
+    return result;
+};
+
 const Previewer = () => {
     const [open, setOpen] = useState(true)
     const [width, setWidth] = useState(250) // default width
@@ -15,8 +52,8 @@ const Previewer = () => {
         const lines = csvContent.split('\n').filter(line => line.trim() !== '');
         if (lines.length === 0) return <div>No data</div>;
         
-        const headers = lines[0].split(',').map(header => header.trim());
-        const rows = lines.slice(1).map(line => line.split(','));
+        const headers = parseCSVLine(lines[0]);
+        const rows = lines.slice(1).map(line => parseCSVLine(line));
         
         return (
             <table className="previewer-data-table">
@@ -32,6 +69,33 @@ const Previewer = () => {
                         <tr key={rowIndex}>
                             {row.map((cell, cellIndex) => (
                                 <td key={cellIndex}>{cell.trim()}</td>
+                            ))}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        );
+    };
+
+    const renderTableFromData = (data: any[]) => {
+        if (!data || data.length === 0) return <div>No data available</div>;
+        
+        const headers = Object.keys(data[0] || {});
+        
+        return (
+            <table className="previewer-data-table">
+                <thead>
+                    <tr>
+                        {headers.map((header, index) => (
+                            <th key={index}>{header}</th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {data.map((row, rowIndex) => (
+                        <tr key={rowIndex}>
+                            {headers.map((header, cellIndex) => (
+                                <td key={cellIndex}>{String(row[header] ?? '')}</td>
                             ))}
                         </tr>
                     ))}
@@ -109,12 +173,30 @@ const Previewer = () => {
                                     <div className="previewer-file-property">
                                         <strong>File Type:</strong> <span>{(workflow.selectedNode.data as any).file.fileFormat || 'N/A'}</span>
                                     </div>
-                                    <div className="previewer-file-content">
-                                        <strong>File Content:</strong>
-                                        <div className="previewer-table-container">
-                                            {renderTableFromCSV((workflow.selectedNode.data as any).file?.fileContent || '')}
+                                    {/* Show preview data if available, otherwise show original content */}
+                                    {(workflow.selectedNode.data as any).previewData ? (
+                                        <>
+                                            <div className="previewer-file-content">
+                                                <strong>Preview Data:</strong>
+                                                <div className="previewer-table-container">
+                                                    {renderTableFromData((workflow.selectedNode.data as any).previewData || [])}
+                                                </div>
+                                            </div>
+                                            <details className="previewer-original-content">
+                                                <summary>View Original Content</summary>
+                                                <div className="previewer-table-container">
+                                                    {renderTableFromCSV((workflow.selectedNode.data as any).file?.fileContent || '')}
+                                                </div>
+                                            </details>
+                                        </>
+                                    ) : (
+                                        <div className="previewer-file-content">
+                                            <strong>File Content:</strong>
+                                            <div className="previewer-table-container">
+                                                {renderTableFromCSV((workflow.selectedNode.data as any).file?.fileContent || '')}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             ) : workflow.selectedNode.type === 'output' && (workflow.selectedNode.data as any).file ? (
                                 <div className="previewer-file-info">
@@ -124,12 +206,29 @@ const Previewer = () => {
                                     <div className="previewer-file-property">
                                         <strong>File Type:</strong> <span>{(workflow.selectedNode.data as any).file.fileFormat || 'csv'}</span>
                                     </div>
-                                    <div className="previewer-file-content">
-                                        <strong>File Content:</strong>
-                                        <div className="previewer-table-container">
-                                            {renderTableFromCSV((workflow.selectedNode.data as any).file?.content || (workflow.selectedNode.data as any).file?.fileContent || '')}
+                                    {/* Show processedData (full transformed data) if available */}
+                                    {(workflow.selectedNode.data as any).file?.processedData ? (
+                                        <div className="previewer-file-content">
+                                            <strong>Transformed Data ({(workflow.selectedNode.data as any).file.processedData.length} rows):</strong>
+                                            <div className="previewer-table-container">
+                                                {renderTableFromData((workflow.selectedNode.data as any).file.processedData)}
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (workflow.selectedNode.data as any).previewData ? (
+                                        <div className="previewer-file-content">
+                                            <strong>Preview Data:</strong>
+                                            <div className="previewer-table-container">
+                                                {renderTableFromData((workflow.selectedNode.data as any).previewData || [])}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="previewer-file-content">
+                                            <strong>File Content:</strong>
+                                            <div className="previewer-table-container">
+                                                {renderTableFromCSV((workflow.selectedNode.data as any).file?.fileContent || '')}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ) : workflow.selectedNode.type === 'transform' ? (
                                 <div className="previewer-transform-info">
@@ -147,6 +246,15 @@ const Previewer = () => {
                                     {(workflow.selectedNode.data as any).targetValue && (
                                         <div className="previewer-file-property">
                                             <strong>Target Value:</strong> <span>{(workflow.selectedNode.data as any).targetValue}</span>
+                                        </div>
+                                    )}
+                                    {/* Show preview data for transform nodes */}
+                                    {(workflow.selectedNode.data as any).previewData && (
+                                        <div className="previewer-file-content">
+                                            <strong>Transformed Preview:</strong>
+                                            <div className="previewer-table-container">
+                                                {renderTableFromData((workflow.selectedNode.data as any).previewData || [])}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

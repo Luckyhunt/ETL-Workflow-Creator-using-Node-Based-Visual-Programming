@@ -1,7 +1,45 @@
 import React, { useState, useEffect, type FC } from "react";
 import { TransformType, type NodeProps } from "../../types";
 import { useWorkflow } from "../../contexts/useWorkflow";
+import { workflowExecutionService } from "../../services/WorkflowExecutionService";
 import "./TransformNode.css";
+
+// Helper function to parse CSV lines properly handling quoted fields
+const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+        
+        if (char === '"' && !inQuotes) {
+            // Start of quoted field
+            inQuotes = true;
+        } else if (char === '"' && inQuotes) {
+            if (nextChar === '"') {
+                // Escaped quote
+                current += '"';
+                i++; // Skip next quote
+            } else {
+                // End of quoted field
+                inQuotes = false;
+            }
+        } else if (char === ',' && !inQuotes) {
+            // Field separator
+            result.push(current);
+            current = '';
+        } else {
+            // Regular character
+            current += char;
+        }
+    }
+    
+    // Add last field
+    result.push(current);
+    return result;
+};
 
 // Helper function to detect data type of a value
 const detectDataType = (value: any): 'string' | 'number' | 'unknown' => {
@@ -25,8 +63,6 @@ const detectDataType = (value: any): 'string' | 'number' | 'unknown' => {
 
 // Get relevant transformations based on data type
 const getRelevantTransformations = (dataType: 'string' | 'number' | 'unknown'): TransformType[] => {
-    const allTransforms = Object.values(TransformType);
-    
     if (dataType === 'string') {
         return [
             TransformType.TO_UPPER,
@@ -65,9 +101,6 @@ const getRelevantTransformations = (dataType: 'string' | 'number' | 'unknown'): 
 };
 
 const TransformNode: FC<NodeProps> = (props: NodeProps) => {
-    // Use props to satisfy linter
-    React.useMemo(() => props, [props]);
-    
     const { workflow, updateNode } = useWorkflow();
     const [selectedTransform, setSelectedTransform] = useState<string>('transform');
     const [selectedColumn, setSelectedColumn] = useState<string>('');
@@ -77,30 +110,19 @@ const TransformNode: FC<NodeProps> = (props: NodeProps) => {
     const [columnDataType, setColumnDataType] = useState<'string' | 'number' | 'unknown'>('unknown');
     const [sampleData, setSampleData] = useState<any[]>([]);
     const [relevantTransformations, setRelevantTransformations] = useState<TransformType[]>([]);
+    const [isLoadingPreview, setIsLoadingPreview] = useState<boolean>(false);
     
-    // Initialize from existing node data
+    // Initialize from existing node data only if state is not already set
     useEffect(() => {
         const transformData = props.node.data as any;
-        if (transformData) {
+        // Only initialize if transform type is not yet set (to prevent resetting user selections)
+        if (transformData && selectedTransform === 'transform') { 
             setSelectedTransform(transformData.transformType || 'transform');
             setSelectedColumn(transformData.columnName || '');
             setAdditionalParam(transformData.targetValue || '');
             setCondition(transformData.condition || '');
         }
-    }, [props.node.data]);
-    
-    // Update node data when selections change
-    useEffect(() => {
-        if (selectedTransform !== 'transform') { // Only update if a valid transform is selected
-            updateNode(props.node._id, {
-                ...props.node.data,
-                transformType: selectedTransform as any, // Type assertion since we know it's a valid TransformType
-                columnName: selectedColumn,
-                targetValue: additionalParam,
-                condition: condition
-            });
-        }
-    }, [selectedTransform, selectedColumn, additionalParam, condition]);
+    }, [props.node.data, selectedTransform]);
     
     // Get available columns and sample data from connected input node
     useEffect(() => {
@@ -112,20 +134,21 @@ const TransformNode: FC<NodeProps> = (props: NodeProps) => {
                 if (inputNode && inputNode.data) {
                     const fileContent = (inputNode.data as any).file?.fileContent;
                     if (fileContent) {
-                        // Parse CSV to get headers/columns and sample data
+                        // Parse CSV properly handling quoted fields
                         const lines: string[] = fileContent.split('\n').filter((line: string) => line.trim() !== '');
                         if (lines.length > 0) {
-                            const headers: string[] = lines[0].split(',').map((header: string) => header.trim());
+                            // Parse header line properly
+                            const headers: string[] = parseCSVLine(lines[0]);
                             setAvailableColumns(headers);
                             
                             // Parse sample data (first 5 rows)
                             const sampleRows = [];
                             const maxRows = Math.min(6, lines.length); // Header + 5 data rows
                             for (let i = 1; i < maxRows; i++) {
-                                const values = lines[i].split(',');
+                                const values = parseCSVLine(lines[i]);
                                 const row: any = {};
                                 for (let j = 0; j < headers.length; j++) {
-                                    row[headers[j]] = values[j]?.trim() || '';
+                                    row[headers[j]] = values[j] !== undefined ? values[j].trim() : '';
                                 }
                                 sampleRows.push(row);
                             }
@@ -180,7 +203,167 @@ const TransformNode: FC<NodeProps> = (props: NodeProps) => {
         }
     }, [selectedColumn, sampleData]);
 
-    const transformations = Object.values(TransformType).map(type => type);
+    // Clear parameters when transformation type changes to prevent confusion
+    useEffect(() => {
+        // Clear condition and additional param when switching transformation types
+        // Only clear if the new transformation type is different from the current one
+        const currentTransformType = (props.node.data as any)?.transformType;
+        if (currentTransformType && currentTransformType !== selectedTransform) {
+            setCondition('');
+            setAdditionalParam('');
+        }
+    }, [selectedTransform, props.node.data]);
+
+    // Update preview when transform parameters change (excluding sampleData to avoid constant updates)
+    useEffect(() => {
+        const updatePreview = async () => {
+            if (sampleData.length > 0 && selectedTransform !== 'transform' && selectedColumn) {
+                setIsLoadingPreview(true);
+                
+                try {
+                    // Prepare parameters for the transformation
+                    const params: any = { columnName: selectedColumn };
+                    
+                    if (condition) {
+                        params.condition = condition;
+                    }
+                    
+                    if (additionalParam) {
+                        params.targetValue = additionalParam;
+                    }
+                    
+                    // Apply transformation using backend service
+                    const result = await workflowExecutionService.applyTransformation(
+                        sampleData, 
+                        selectedTransform.toLowerCase(), 
+                        params
+                    );
+                    
+                    if (result.success) {
+                        // Send preview data to the workflow context for the Previewer
+                        updateNode(props.node._id, {
+                            ...props.node.data,
+                            transformType: selectedTransform as any,
+                            columnName: selectedColumn,
+                            targetValue: additionalParam,
+                            condition: condition,
+                            previewData: result.data || []
+                        });
+                    } else {
+                        console.error('Transformation failed:', result.error);
+                        // Send original data as fallback
+                        updateNode(props.node._id, {
+                            ...props.node.data,
+                            transformType: selectedTransform as any,
+                            columnName: selectedColumn,
+                            targetValue: additionalParam,
+                            condition: condition,
+                            previewData: sampleData
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error updating preview:', error);
+                    // Send original data as fallback
+                    updateNode(props.node._id, {
+                        ...props.node.data,
+                        transformType: selectedTransform as any,
+                        columnName: selectedColumn,
+                        targetValue: additionalParam,
+                        condition: condition,
+                        previewData: sampleData
+                    });
+                } finally {
+                    setIsLoadingPreview(false);
+                }
+            } else {
+                // Send original data when no transformation is selected
+                updateNode(props.node._id, {
+                    ...props.node.data,
+                    transformType: selectedTransform as any,
+                    columnName: selectedColumn,
+                    targetValue: additionalParam,
+                    condition: condition,
+                    previewData: sampleData
+                });
+            }
+        };
+        
+        updatePreview();
+    }, [selectedTransform, selectedColumn, condition, additionalParam]); // Removed sampleData from dependencies to prevent constant updates
+    
+    // Update preview when sampleData changes, but only if transform settings remain the same
+    useEffect(() => {
+        // Only update preview if we have a valid transformation selected
+        if (sampleData.length > 0 && selectedTransform !== 'transform' && selectedColumn) {
+            // Create a timer to debounce the update
+            const timer = setTimeout(() => {
+                const updatePreviewOnDataChange = async () => {
+                    setIsLoadingPreview(true);
+                    
+                    try {
+                        // Prepare parameters for the transformation
+                        const params: any = { columnName: selectedColumn };
+                        
+                        if (condition) {
+                            params.condition = condition;
+                        }
+                        
+                        if (additionalParam) {
+                            params.targetValue = additionalParam;
+                        }
+                        
+                        // Apply transformation using backend service
+                        const result = await workflowExecutionService.applyTransformation(
+                            sampleData, 
+                            selectedTransform.toLowerCase(), 
+                            params
+                        );
+                        
+                        if (result.success) {
+                            // Send preview data to the workflow context for the Previewer
+                            updateNode(props.node._id, {
+                                ...props.node.data,
+                                transformType: selectedTransform as any,
+                                columnName: selectedColumn,
+                                targetValue: additionalParam,
+                                condition: condition,
+                                previewData: result.data || []
+                            });
+                        } else {
+                            console.error('Transformation failed:', result.error);
+                            // Send original data as fallback
+                            updateNode(props.node._id, {
+                                ...props.node.data,
+                                transformType: selectedTransform as any,
+                                columnName: selectedColumn,
+                                targetValue: additionalParam,
+                                condition: condition,
+                                previewData: sampleData
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error updating preview on data change:', error);
+                        // Send original data as fallback
+                        updateNode(props.node._id, {
+                            ...props.node.data,
+                            transformType: selectedTransform as any,
+                            columnName: selectedColumn,
+                            targetValue: additionalParam,
+                            condition: condition,
+                            previewData: sampleData
+                        });
+                    } finally {
+                        setIsLoadingPreview(false);
+                    }
+                };
+                
+                updatePreviewOnDataChange();
+            }, 300); // 300ms debounce delay
+            
+            // Cleanup function to cancel timeout if dependencies change
+            return () => clearTimeout(timer);
+        };
+    }, [sampleData, selectedTransform, selectedColumn, condition, additionalParam, updateNode, props.node._id]);
     
     // Determine if the selected transformation requires additional parameters
     const showAdditionalParams = [
@@ -190,6 +373,17 @@ const TransformNode: FC<NodeProps> = (props: NodeProps) => {
         TransformType.REMOVE_SPECIAL_CHARS,
         TransformType.EXTRACT_NUMBERS,
         TransformType.EXTRACT_STRINGS
+    ].includes(selectedTransform as any);
+
+    // Determine if the selected transformation requires condition
+    const showCondition = [
+        TransformType.FILTER
+    ].includes(selectedTransform as any);
+
+    // Determine if the selected transformation requires target value (for rename, fill_na)
+    const showTargetValue = [
+        TransformType.RENAME_COLUMN,
+        TransformType.FILL_NA
     ].includes(selectedTransform as any);
 
     return (
@@ -210,7 +404,7 @@ const TransformNode: FC<NodeProps> = (props: NodeProps) => {
                     }
                 </select>
             </div>
-            
+        
             <div className="common-node-select-container">
                 <label htmlFor="transform" className="common-node-label">Select Transformation</label>
                 <select
@@ -225,7 +419,7 @@ const TransformNode: FC<NodeProps> = (props: NodeProps) => {
                     }
                 </select>
             </div>
-            
+        
             {/* Additional parameters for specific transformations */}
             {showAdditionalParams && (
                 <div className="common-node-input-container">
@@ -247,19 +441,39 @@ const TransformNode: FC<NodeProps> = (props: NodeProps) => {
                 </div>
             )}
             
-            <div className="common-node-input-container">
-                <label htmlFor="condition" className="common-node-label">Condition</label>
-                <input
-                    className="common-node-input"
-                    type="text"
-                    name="condition"
-                    value={condition}
-                    onChange={(e) => setCondition(e.target.value)}
-                    placeholder="Eg. age >= 20"
-                />
-            </div>
+            {/* Target value for rename and fill_na operations */}
+            {showTargetValue && (
+                <div className="common-node-input-container">
+                    <label htmlFor="targetValue" className="common-node-label">
+                        {selectedTransform === TransformType.RENAME_COLUMN ? "New Column Name" : "Fill Value"}
+                    </label>
+                    <input
+                        className="common-node-input"
+                        type="text"
+                        name="targetValue"
+                        value={additionalParam}
+                        onChange={(e) => setAdditionalParam(e.target.value)}
+                        placeholder={selectedTransform === TransformType.RENAME_COLUMN ? "Enter new column name..." : "Enter fill value..."}
+                    />
+                </div>
+            )}
+            
+            {/* Condition field only for filter operations */}
+            {showCondition && (
+                <div className="common-node-input-container">
+                    <label htmlFor="condition" className="common-node-label">Condition</label>
+                    <input
+                        className="common-node-input"
+                        type="text"
+                        name="condition"
+                        value={condition}
+                        onChange={(e) => setCondition(e.target.value)}
+                        placeholder="Eg. age >= 20"
+                    />
+                </div>
+            )}
         </div>
     )
 }
 
-export default TransformNode
+export default TransformNode;

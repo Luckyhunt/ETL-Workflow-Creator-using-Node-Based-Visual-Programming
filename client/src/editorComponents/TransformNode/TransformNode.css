@@ -114,6 +114,70 @@
     letter-spacing: 0.5px;
 }
 
+/* Preview section styles */
+.preview-section {
+    margin-top: 20px;
+    padding: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.preview-section h4 {
+    margin: 0 0 10px 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.loading-preview {
+    padding: 10px;
+    text-align: center;
+    color: var(--color-text-grey);
+    font-style: italic;
+}
+
+.preview-data {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.preview-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.preview-row:last-child {
+    border-bottom: none;
+}
+
+.preview-cell {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.preview-cell strong {
+    color: var(--color-accent-1);
+}
+
+.preview-more {
+    padding: 5px;
+    text-align: center;
+    color: var(--color-text-grey);
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .data-type-display {

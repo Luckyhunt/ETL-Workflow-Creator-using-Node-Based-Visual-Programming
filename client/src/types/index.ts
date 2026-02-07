@@ -37,6 +37,7 @@ export interface IFile {
 
 export interface InputNodeData {
     file: IFile
+    previewData?: any[] // Preview data for the Previewer panel
 }
 
 export interface TransformNodeData {
@@ -44,10 +45,12 @@ export interface TransformNodeData {
     columnName: string
     condition?: string // Used for operations like 'filter'
     targetValue?: string // Used for RENAME or FILL_NA
+    previewData?: any[] // Preview data for the Previewer panel
 }
 
 export interface OutputNodeData {
     file: IFile
+    previewData?: any[] // Preview data for the Previewer panel
 }
 
 // this interface is common for all the nodes

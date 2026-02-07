@@ -13,6 +13,9 @@ const OutputNode: FC<NodeProps> = ({ node }) => {
     // Type guard to ensure we're accessing file property safely
     const outputData = node.data as any; // Since we know this is an output node
     const fileName = outputData.file?.filename || "output.csv";
+    const processedData = outputData.file?.processedData || [];
+    const content = outputData.file?.content || "";
+    
     return (
         <div className="common-node-body outputnode-body">
             <div className="common-node-output-file-container">
@@ -21,18 +24,20 @@ const OutputNode: FC<NodeProps> = ({ node }) => {
                     className="common-node-button" 
                     onClick={() => {
                         // Download the processed file
-                        if (outputData.file?.content) {
-                            const blob = new Blob([outputData.file.content], { type: 'application/octet-stream' });
+                        if (content || processedData.length > 0) {
+                            const dataToDownload = content || JSON.stringify(processedData, null, 2);
+                            const blob = new Blob([dataToDownload], { type: 'application/json' });
                             const url = URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = url;
-                            a.download = fileName;
+                            a.download = fileName.replace('.csv', '.json');
                             document.body.appendChild(a);
                             a.click();
                             document.body.removeChild(a);
                             URL.revokeObjectURL(url);
                         }
                     }}
+                    disabled={!content && processedData.length === 0}
                 ><MdDownload /></button>
             </div>
         </div>

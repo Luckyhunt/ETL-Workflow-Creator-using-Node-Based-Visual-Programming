@@ -129,6 +129,11 @@
     justify-content: center;
 }
 
+.management-primary-action .execute-workflow-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .management-secondary-actions {
     list-style-type: none;
     padding: 0;

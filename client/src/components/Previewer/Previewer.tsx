@@ -80,7 +80,14 @@ const Previewer = () => {
     const renderTableFromData = (data: any[]) => {
         if (!data || data.length === 0) return <div>No data available</div>;
         
-        const headers = Object.keys(data[0] || {});
+        // Collect all unique keys from all rows
+        const allKeys = new Set<string>();
+        data.forEach(row => {
+            if (row && typeof row === 'object') {
+                Object.keys(row).forEach(key => allKeys.add(key));
+            }
+        });
+        const headers = Array.from(allKeys).sort();
         
         return (
             <table className="previewer-data-table">
@@ -95,7 +102,7 @@ const Previewer = () => {
                     {data.map((row, rowIndex) => (
                         <tr key={rowIndex}>
                             {headers.map((header, cellIndex) => (
-                                <td key={cellIndex}>{String(row[header] ?? '')}</td>
+                                <td key={cellIndex}>{String(row?.[header] ?? '')}</td>
                             ))}
                         </tr>
                     ))}
@@ -184,8 +191,8 @@ const Previewer = () => {
                                             </div>
                                             <details className="previewer-original-content">
                                                 <summary>View Original Content</summary>
-                                                <div className="previewer-table-container">
-                                                    {renderTableFromCSV((workflow.selectedNode.data as any).file?.fileContent || '')}
+                                                <div className="previewer-raw-content">
+                                                    <pre>{(workflow.selectedNode.data as any).file?.fileContent || ''}</pre>
                                                 </div>
                                             </details>
                                         </>

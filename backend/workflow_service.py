@@ -104,18 +104,26 @@ class WorkflowService:
     
     def _extract_input_data(self, input_node: Dict[str, Any]) -> Any:
         """
-        Extract input data from the input node - parse actual CSV/JSON content
+        Extract input data from the input node
+        Uses pre-parsed previewData if available, otherwise parses fileContent
         """
         data = input_node.get('data', {})
-        file_info = data.get('file', {})
         
+        # First, try to use pre-parsed previewData from frontend (new format)
+        preview_data = data.get('previewData')
+        if preview_data and isinstance(preview_data, list) and len(preview_data) > 0:
+            print(f"Using pre-parsed previewData: {len(preview_data)} rows")
+            return preview_data
+        
+        # Fallback: parse file content (old format)
+        file_info = data.get('file', {})
         filename = file_info.get('filename', '')
         file_content = file_info.get('fileContent', '')
         
         if filename and file_content:
             try:
-                # Parse the actual file content
-                if filename.endswith('.csv') or ',' in file_content:
+                # Parse based on file extension
+                if filename.endswith('.csv'):
                     # Parse CSV content
                     import io
                     df = pd.read_csv(io.StringIO(file_content))
@@ -124,6 +132,9 @@ class WorkflowService:
                     # Parse JSON content
                     import json
                     return json.loads(file_content)
+                elif filename.endswith('.xml'):
+                    # Parse XML content
+                    return self._parse_xml_content(file_content)
                 else:
                     # Default to CSV parsing for raw content
                     import io
@@ -135,6 +146,75 @@ class WorkflowService:
                 return []
         else:
             # Return empty data if no file content
+            return []
+    
+    def _parse_xml_content(self, xml_content: str) -> List[Dict[str, Any]]:
+        """
+        Parse XML content into list of dictionaries
+        """
+        try:
+            import xml.etree.ElementTree as ET
+            
+            root = ET.fromstring(xml_content)
+            records = []
+            
+            def extract_records(element, prefix=''):
+                """Recursively extract data records from XML"""
+                # Skip namespace declarations
+                if element.tag.startswith('{') or element.tag.startswith('xmlns'):
+                    return
+                
+                # Get clean tag name without namespace
+                tag_name = element.tag
+                if '}' in tag_name:
+                    tag_name = tag_name.split('}')[1]
+                
+                full_key = f"{prefix}.{tag_name}" if prefix else tag_name
+                
+                # If element has no children, it's a leaf node with text
+                if len(element) == 0:
+                    return {full_key: element.text or ''}
+                
+                # If all children are leaf nodes, this is a data record
+                if all(len(child) == 0 for child in element):
+                    record = {}
+                    for child in element:
+                        child_tag = child.tag
+                        if '}' in child_tag:
+                            child_tag = child_tag.split('}')[1]
+                        child_key = f"{full_key}.{child_tag}" if prefix else child_tag
+                        record[child_key] = child.text or ''
+                    return record
+                
+                # Otherwise, recurse into children
+                for child in element:
+                    child_records = extract_records(child, full_key)
+                    if child_records:
+                        if isinstance(child_records, dict):
+                            records.append(child_records)
+                        elif isinstance(child_records, list):
+                            records.extend(child_records)
+                
+                return None
+            
+            # Try to find data records at root's children level
+            for child in root:
+                result = extract_records(child)
+                if result and isinstance(result, dict) and result:
+                    records.append(result)
+            
+            # If no records found, try deeper
+            if not records:
+                for child in root:
+                    for grandchild in child:
+                        result = extract_records(grandchild)
+                        if result and isinstance(result, dict) and result:
+                            records.append(result)
+            
+            return records if records else []
+            
+        except Exception as e:
+            print(f"Error parsing XML: {e}")
             return []
     
     def _execute_transform_node(self, transform_node: Dict[str, Any], all_nodes: Dict[str, Any], edges: List[Dict[str, Any]]) -> str:

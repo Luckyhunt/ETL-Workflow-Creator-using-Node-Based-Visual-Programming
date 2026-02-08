@@ -12,3 +12,9 @@
 .common-node-output-file {
     margin-left: 10px;
 }
+
+.outputnode-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}

@@ -1,5 +1,6 @@
-import type { Workflow, WorkflowNode, WorkflowEdge, NodeType, IFile, InputNodeData, TransformNodeData, OutputNodeData } from "../types";
+import type { Workflow, WorkflowNode } from "../types";
 import { TransformType } from "../types";
+import { parseXMLToArray } from "../utils/dataParser";
 
 // Define data structure for passing between nodes
 export interface NodeData {
@@ -309,70 +310,27 @@ export class WorkflowEngine {
         error: `Node execution error: ${error instanceof Error ? error.message : String(error)}`
       };
     }
-  }
-
-  /**
-   * Execute an input node
-   */
-  private async executeInputNode(
-    node: WorkflowNode,
-    workflow: Workflow,
-    nodeResults: Record<string, any>
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
-    try {
-      const inputData = node.data as any;
-      
-      // Check if file content exists
-      if (!inputData.file || !inputData.file.fileContent) {
-        return { 
-          success: false, 
-          error: `Input node ${node._id} has no file content` 
-        };
-      }
-
-      // Parse the file content based on format
-      let parsedData;
-      try {
-        switch (inputData.file.fileFormat?.toLowerCase()) {
-          case 'csv':
-            parsedData = this.parseCSV(inputData.file.fileContent);
-            break;
-          case 'json':
             parsedData = JSON.parse(inputData.file.fileContent);
-            break;
-          case 'xml':
-            parsedData = this.parseXML(inputData.file.fileContent);
-            break;
-          default:
-            // Try to auto-detect based on content
-            if (inputData.file.fileContent.trim().startsWith('{')) {
-              parsedData = JSON.parse(inputData.file.fileContent);
-            } else {
-              parsedData = this.parseCSV(inputData.file.fileContent);
-            }
-        }
-      } catch (parseError) {
-        return { 
-          success: false, 
-          error: `Failed to parse input file: ${parseError instanceof Error ? parseError.message : String(parseError)}` 
-        };
+          } else {
+            parsedData = this.parseCSV(inputData.file.fileContent);
+          }
       }
-
+    } catch (parseError) {
       return { 
-        success: true, 
-        data: parsedData 
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: `Input node execution error: ${error instanceof Error ? error.message : String(error)}`
+        success: false, 
+        error: `Failed to parse input file: ${parseError instanceof Error ? parseError.message : String(parseError)}` 
       };
     }
-  }
 
-  /**
-   * Execute a transform node
-   */
+    return { 
+      success: true, 
+      data: parsedData 
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Input node execution error: ${error instanceof Error ? error.message : String(error)}`
+    };
   private async executeTransformNode(
     node: WorkflowNode,
     workflow: Workflow,
@@ -403,6 +361,9 @@ export class WorkflowEngine {
       // Apply the transformation
       let result;
       switch (transformType) {
+        case TransformType.NONE:
+          result = inputData; // Just pass through
+          break;
         case TransformType.FILTER:
           result = this.applyFilterTransformation(inputData, transformData);
           break;
@@ -573,12 +534,10 @@ export class WorkflowEngine {
   }
 
   /**
-   * Parse XML content (simplified implementation)
+   * Parse XML content into array of objects
    */
-  private parseXML(xmlContent: string): any {
-    // In a real implementation, we'd use a proper XML parser
-    // For now, we'll return the raw content as a string property
-    return { xmlContent };
+  private parseXML(xmlContent: string): any[] {
+    return parseXMLToArray(xmlContent);
   }
 
   /**

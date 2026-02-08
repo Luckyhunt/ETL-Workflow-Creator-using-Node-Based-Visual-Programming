@@ -140,7 +140,7 @@ const CommonNode: FC<NodeProps> = ({ node }) => {
             )}
 
             <div className="common-node-header">
-                <span className="common-node-title">{node.type}</span>
+                <span className="common-node-title">{node.name || node.type}</span>
                 <button
                     onClick={() => removeNode(node._id)}
                     className="common-node-delete"

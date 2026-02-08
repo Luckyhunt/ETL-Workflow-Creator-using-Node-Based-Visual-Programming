@@ -5,6 +5,7 @@ import "./InputNode.css"
 import { MdOutlineFileUpload } from "react-icons/md"
 import { ImCross } from "react-icons/im"
 import { useWorkflow } from "../../contexts/useWorkflow"
+import { parseFileContentToArray } from "../../utils/dataParser"
 
 const InputNode: FC<NodeProps> = ({ node }) => {
     
@@ -116,14 +117,19 @@ const InputNode: FC<NodeProps> = ({ node }) => {
                                 
                                 // Read file content
                                 const fileContent = await selectedFile.text();
+                                const fileFormat = selectedFile.name.split('.').pop()?.toLowerCase() || 'NA';
+                                
+                                // Parse content to tabular format for preview
+                                const previewData = parseFileContentToArray(fileContent, fileFormat);
                                 
                                 // Update the node's data with file information
                                 updateNode(node._id, {
                                     file: {
                                         filename: selectedFile.name,
                                         fileContent: fileContent,
-                                        fileFormat: selectedFile.name.split('.').pop()?.toLowerCase() || 'NA'
-                                    }
+                                        fileFormat: fileFormat
+                                    },
+                                    previewData: previewData
                                 });
                             }
                         }}

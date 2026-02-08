@@ -92,6 +92,7 @@ const getRelevantTransformations = (dataType: 'string' | 'number' | 'unknown'): 
     } else {
         // For unknown type, show general transformations
         return [
+            TransformType.NONE,
             TransformType.FILTER,
             TransformType.DROP_COLUMN,
             TransformType.RENAME_COLUMN,
@@ -102,7 +103,7 @@ const getRelevantTransformations = (dataType: 'string' | 'number' | 'unknown'): 
 
 const TransformNode: FC<NodeProps> = (props: NodeProps) => {
     const { workflow, updateNode } = useWorkflow();
-    const [selectedTransform, setSelectedTransform] = useState<string>('transform');
+    const [selectedTransform, setSelectedTransform] = useState<string>(TransformType.NONE);
     const [selectedColumn, setSelectedColumn] = useState<string>('');
     const [additionalParam, setAdditionalParam] = useState<string>('');
     const [condition, setCondition] = useState<string>('');
@@ -116,47 +117,76 @@ const TransformNode: FC<NodeProps> = (props: NodeProps) => {
     useEffect(() => {
         const transformData = props.node.data as any;
         // Only initialize if transform type is not yet set (to prevent resetting user selections)
-        if (transformData && selectedTransform === 'transform') { 
-            setSelectedTransform(transformData.transformType || 'transform');
+        if (transformData && selectedTransform === TransformType.NONE && !transformData.transformType) { 
+            setSelectedTransform(transformData.transformType || TransformType.NONE);
             setSelectedColumn(transformData.columnName || '');
             setAdditionalParam(transformData.targetValue || '');
             setCondition(transformData.condition || '');
         }
     }, [props.node.data, selectedTransform]);
     
-    // Get available columns and sample data from connected input node
+    // Get available columns and sample data from connected input node or transform node
     useEffect(() => {
-        const findConnectedInputNode = () => {
+        const findConnectedNode = () => {
             const nodeId = props.node._id;
             const edge = workflow.definition.edges.find(e => e.target._id === nodeId);
             if (edge) {
-                const inputNode = workflow.definition.nodes.find(n => n._id === edge.source._id && n.type === 'input');
-                if (inputNode && inputNode.data) {
-                    const fileContent = (inputNode.data as any).file?.fileContent;
-                    if (fileContent) {
-                        // Parse CSV properly handling quoted fields
-                        const lines: string[] = fileContent.split('\n').filter((line: string) => line.trim() !== '');
-                        if (lines.length > 0) {
-                            // Parse header line properly
-                            const headers: string[] = parseCSVLine(lines[0]);
-                            setAvailableColumns(headers);
-                            
-                            // Parse sample data (first 5 rows)
-                            const sampleRows = [];
-                            const maxRows = Math.min(6, lines.length); // Header + 5 data rows
-                            for (let i = 1; i < maxRows; i++) {
-                                const values = parseCSVLine(lines[i]);
-                                const row: any = {};
-                                for (let j = 0; j < headers.length; j++) {
-                                    row[headers[j]] = values[j] !== undefined ? values[j].trim() : '';
-                                }
-                                sampleRows.push(row);
+                // Accept data from input nodes OR transform nodes (for chaining)
+                const sourceNode = workflow.definition.nodes.find(
+                    n => n._id === edge.source._id && (n.type === 'input' || n.type === 'transform')
+                );
+                if (sourceNode && sourceNode.data) {
+                    const sourceData = sourceNode.data as any;
+                    
+                    // First try to use previewData (available for all formats: CSV, JSON, XML, and from transforms)
+                    const previewData = sourceData.previewData;
+                    if (previewData && previewData.length > 0) {
+                        // Extract columns from previewData
+                        const allKeys = new Set<string>();
+                        previewData.forEach((row: any) => {
+                            if (row && typeof row === 'object') {
+                                Object.keys(row).forEach(key => allKeys.add(key));
                             }
-                            setSampleData(sampleRows);
-                            
-                            // Only set the first column if no column is currently selected
-                            if (headers.length > 0 && !selectedColumn && !props.node.data) {
-                                setSelectedColumn(headers[0]);
+                        });
+                        const headers = Array.from(allKeys).sort();
+                        setAvailableColumns(headers);
+                        setSampleData(previewData.slice(0, 5)); // First 5 rows as sample
+                        
+                        // Only set the first column if no column is currently selected
+                        if (headers.length > 0 && !selectedColumn && !props.node.data) {
+                            setSelectedColumn(headers[0]);
+                        }
+                        return;
+                    }
+                    
+                    // Fallback: parse CSV from fileContent (old format, only for input nodes)
+                    if (sourceNode.type === 'input') {
+                        const fileContent = sourceData.file?.fileContent;
+                        if (fileContent) {
+                            // Parse CSV properly handling quoted fields
+                            const lines: string[] = fileContent.split('\n').filter((line: string) => line.trim() !== '');
+                            if (lines.length > 0) {
+                                // Parse header line properly
+                                const headers: string[] = parseCSVLine(lines[0]);
+                                setAvailableColumns(headers);
+                                
+                                // Parse sample data (first 5 rows)
+                                const sampleRows = [];
+                                const maxRows = Math.min(6, lines.length); // Header + 5 data rows
+                                for (let i = 1; i < maxRows; i++) {
+                                    const values = parseCSVLine(lines[i]);
+                                    const row: any = {};
+                                    for (let j = 0; j < headers.length; j++) {
+                                        row[headers[j]] = values[j] !== undefined ? values[j].trim() : '';
+                                    }
+                                    sampleRows.push(row);
+                                }
+                                setSampleData(sampleRows);
+                                
+                                // Only set the first column if no column is currently selected
+                                if (headers.length > 0 && !selectedColumn && !props.node.data) {
+                                    setSelectedColumn(headers[0]);
+                                }
                             }
                         }
                     }
@@ -164,7 +194,7 @@ const TransformNode: FC<NodeProps> = (props: NodeProps) => {
             }
         };
         
-        findConnectedInputNode();
+        findConnectedNode();
     }, [workflow, props.node._id, selectedColumn, props.node.data]);
     
     // Detect data type when column changes
@@ -217,7 +247,20 @@ const TransformNode: FC<NodeProps> = (props: NodeProps) => {
     // Update preview when transform parameters change (excluding sampleData to avoid constant updates)
     useEffect(() => {
         const updatePreview = async () => {
-            if (sampleData.length > 0 && selectedTransform !== 'transform' && selectedColumn) {
+            // If NONE selected, just pass through original data without transformation
+            if (selectedTransform === TransformType.NONE) {
+                updateNode(props.node._id, {
+                    ...props.node.data,
+                    transformType: selectedTransform as any,
+                    columnName: selectedColumn,
+                    targetValue: additionalParam,
+                    condition: condition,
+                    previewData: sampleData
+                });
+                return;
+            }
+            
+            if (sampleData.length > 0 && selectedColumn) {
                 setIsLoadingPreview(true);
                 
                 try {
@@ -413,9 +456,9 @@ const TransformNode: FC<NodeProps> = (props: NodeProps) => {
                     value={selectedTransform}
                     onChange={(e) => setSelectedTransform(e.target.value)}
                 >
-                    <option value="transform" disabled>Select a transformation...</option>
+                    <option value={TransformType.NONE}>Select a transformation...</option>
                     {
-                        relevantTransformations.map(type => <option key={type} value={type}>{ type }</option>)
+                        relevantTransformations.filter(t => t !== TransformType.NONE).map(type => <option key={type} value={type}>{ type }</option>)
                     }
                 </select>
             </div>

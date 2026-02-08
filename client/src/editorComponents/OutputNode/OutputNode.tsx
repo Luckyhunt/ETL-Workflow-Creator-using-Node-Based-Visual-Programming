@@ -1,18 +1,15 @@
-import React, { type FC } from "react";
+import React, { type FC, useMemo } from "react";
 import type { NodeProps } from "../../types";
 import { MdDownload } from "react-icons/md";
-import { useWorkflow } from "../../contexts/useWorkflow";
 import "./OutputNode.css"
 
 const OutputNode: FC<NodeProps> = ({ node }) => {
     // Use props to satisfy linter
-    React.useMemo(() => node, [node]);
-    
-    const { updateNode } = useWorkflow();
+    useMemo(() => node, [node]);
     
     // Type guard to ensure we're accessing file property safely
     const outputData = node.data as any; // Since we know this is an output node
-    const fileName = outputData.file?.filename || "output.csv";
+    const fileName = outputData.file?.filename || node.name || "output.csv";
     const processedData = outputData.file?.processedData || [];
     const content = outputData.file?.content || "";
     
@@ -23,7 +20,7 @@ const OutputNode: FC<NodeProps> = ({ node }) => {
                 <button
                     className="common-node-button" 
                     onClick={() => {
-                        // Download the processed file
+                        // Download processed file
                         if (content || processedData.length > 0) {
                             const dataToDownload = content || JSON.stringify(processedData, null, 2);
                             const blob = new Blob([dataToDownload], { type: 'application/json' });
@@ -44,4 +41,5 @@ const OutputNode: FC<NodeProps> = ({ node }) => {
     )
 }
 
+// Force refresh
 export default OutputNode

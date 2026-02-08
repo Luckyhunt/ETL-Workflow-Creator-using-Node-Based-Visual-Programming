@@ -17,8 +17,22 @@
         inset 1px 0 0 rgba(255, 255, 255, 0.25);
 
     transition: width 0.3s ease, padding 0.3s ease;
+    overflow: visible;
+    
+    /* Enable flex layout for scrollable content */
+    display: flex;
+    flex-direction: column;
 }
 
+.previewer.close {
+    width: 0px;
+    padding: 0;
+}
+
+.previewer .toggle-btn {
+    position: absolute;
+    left: -40px;
+}
 
 .toggle-btn {
     padding: 0.4rem 0.8rem;
@@ -45,15 +59,35 @@
     background: rgba(255, 255, 255, 0.22);
 }
 
-
-.previewer.close {
-    width: 0px;
-    padding: 0;
+.previewer-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 20px;
 }
 
-.previewer .toggle-btn {
-    position: absolute;
-    left: -40px;
+/* Custom scrollbar for previewer body - 60% transparent */
+.previewer-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.previewer-body::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.previewer-body::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+}
+
+.previewer-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+/* Firefox scrollbar */
+.previewer-body {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.4) rgba(0, 0, 0, 0.1);
 }
 
 .previewer-title {
@@ -152,6 +186,50 @@
 
 .previewer-original-content[open] summary {
     border-bottom: 1px solid #ddd;
+}
+
+.previewer-raw-content {
+    max-height: calc(100vh - 400px);
+    min-height: 150px;
+    overflow-x: auto;
+    overflow-y: auto;
+    background-color: #f8f8f8;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.previewer-raw-content pre {
+    margin: 0;
+    padding: 12px;
+    font-size: 11px;
+    line-height: 1.4;
+    white-space: pre;
+    min-width: fit-content;
+    max-width: none;
+}
+
+/* Custom scrollbar for raw content and table container - 60% transparent */
+.previewer-raw-content::-webkit-scrollbar,
+.previewer-table-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.previewer-raw-content::-webkit-scrollbar-track,
+.previewer-table-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.previewer-raw-content::-webkit-scrollbar-thumb,
+.previewer-table-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+}
+
+.previewer-raw-content::-webkit-scrollbar-thumb:hover,
+.previewer-table-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.6);
 }
 
 .previewer-original-content div {

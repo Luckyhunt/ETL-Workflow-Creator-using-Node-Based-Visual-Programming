@@ -3,6 +3,7 @@ export type NodeType = 'input' | 'transform' | 'output'
 export type FileFormat = 'csv' | 'json' | 'xml' | 'NA'
 
 export const TransformType = {
+    NONE: "NONE",
     FILTER: "FILTER",
     DROP_COLUMN: "DROP_COLUMN",
     RENAME_COLUMN: "RENAME_COLUMN",
@@ -59,6 +60,7 @@ export interface WorkflowNode {
     type: NodeType
     position: Position
     data: InputNodeData | TransformNodeData | OutputNodeData
+    name?: string // Optional name for display purposes
 }
 
 // only to be passed as the argument for FC

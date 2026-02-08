@@ -125,7 +125,7 @@ const PlayCanvas = () => {
                 </svg>
 
                 {
-                    workflow.definition.nodes.map((node) => <CommonNode key={node._id} node={node} />)
+                    workflow.definition.nodes.map((node) => <CommonNode key={node._id} node={{ ...node }} />)
                 }
             </div>
         </div>

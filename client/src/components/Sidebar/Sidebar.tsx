@@ -59,14 +59,19 @@ const Sidebar = () => {
     }
 
     const createNewOutputNode = () => {
+        const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output')
+        const outputNumber = outputNodes.length + 1
+        const outputName = `Output ${outputNumber}`
+        
         const newOutputNode: WorkflowNode = {
             _id: uuidv4(),
             type: 'output',
             position: {x: 600, y: 200},
+            name: outputName,
             data: {
                 file: {
-                    filename: 'NA',
-                    fileContent: 'NA',
+                    filename: outputName.toLowerCase().replace(/\s+/g, '_') + '.json',
+                    fileContent: '',
                     fileFormat: 'NA'
                 }
             }
@@ -105,11 +110,16 @@ const Sidebar = () => {
                 
                 if (finalData && finalNodeId) {
                     const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
-                    outputNodes.forEach(outputNode => {
+                    
+                    // Update all output nodes with the final data
+                    outputNodes.forEach((outputNode, index) => {
                         const outputData = outputNode.data as { file: any };
+                        const outputName = outputNodes.length > 1 ? `Output ${index + 1}` : 'Output';
+                            
                         updateNode(outputNode._id, {
                             file: {
                                 ...outputData.file,
+                                filename: outputData.file?.filename || `${outputName.toLowerCase().replace(/\s+/g, '_')}.json`,
                                 content: JSON.stringify(finalData, null, 2),
                                 processedData: finalData
                             }
@@ -243,9 +253,10 @@ const Sidebar = () => {
                         </li>
                         <li className="management-item">
                             <button onClick={() => {
-                                // Get data from output node
-                                const outputNode = workflow.definition.nodes.find(n => n.type === 'output');
-                                const processedData = (outputNode?.data as any)?.file?.processedData || [];
+                                // Get data from LAST output node in the chain
+                                const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
+                                const lastOutputNode = outputNodes[outputNodes.length - 1];
+                                const processedData = (lastOutputNode?.data as any)?.file?.processedData || [];
                                 
                                 if (!processedData || processedData.length === 0) {
                                     alert('No processed data available. Run workflow first.');

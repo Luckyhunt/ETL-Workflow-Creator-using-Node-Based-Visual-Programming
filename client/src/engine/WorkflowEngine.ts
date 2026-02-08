@@ -37,51 +37,351 @@ export class WorkflowEngine {
         };
       }
 
-      // 2. Determine execution order using topological sort
-      const executionOrder = this.determineExecutionOrder(workflow);
-      
-      if (!executionOrder.success) {
-        return {
-          success: false,
-          error: `Could not determine execution order: ${executionOrder.error}`
-        };
-      }
-
-      // 3. Execute nodes in order
+      // 2. Execute per output node - each output gets its own upstream path
+      const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
       const nodeResults: Record<string, any> = {};
-      for (const nodeId of executionOrder.order!) {
-        const node = workflow.definition.nodes.find(n => n._id === nodeId);
-        if (!node) continue;
+      const allOutputResults: Record<string, any> = {};
 
-        const result = await this.executeNode(node, workflow, nodeResults);
+      for (const outputNode of outputNodes) {
+        // Get the upstream path for this output node
+        const upstreamPath = this.getUpstreamPath(outputNode._id, workflow);
         
-        if (!result.success) {
+        // Execute the path for this output
+        const pathResult = await this.executePath(upstreamPath, workflow, nodeResults);
+        
+        if (!pathResult.success) {
           return {
             success: false,
-            error: `Node execution failed for node ${nodeId}: ${result.error}`,
+            error: `Execution failed for output node ${outputNode._id}: ${pathResult.error}`,
             nodeResults
           };
         }
         
-        nodeResults[nodeId] = result.data;
+        // Store result for this output node
+        allOutputResults[outputNode._id] = pathResult.data;
+        nodeResults[outputNode._id] = pathResult.data;
       }
-
-      // 4. Return the final result (from output nodes)
-      const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
-      const finalResult = outputNodes.reduce((acc, node) => {
-        acc[node._id] = nodeResults[node._id];
-        return acc;
-      }, {} as Record<string, any>);
 
       return {
         success: true,
-        data: finalResult,
+        data: allOutputResults,
         nodeResults
       };
     } catch (error) {
       return {
         success: false,
         error: `Execution error: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+  }
+
+  /**
+   * Get upstream path from output node to input nodes
+   * Returns nodes in execution order: input -> transforms -> output
+   */
+  private getUpstreamPath(outputNodeId: string, workflow: Workflow): WorkflowNode[] {
+    const path: WorkflowNode[] = [];
+    const visited = new Set<string>();
+    
+    const traverse = (nodeId: string) => {
+      if (visited.has(nodeId)) return;
+      visited.add(nodeId);
+      
+      const node = workflow.definition.nodes.find(n => n._id === nodeId);
+      if (!node) return;
+      
+      // Add to path (we'll reverse at the end)
+      path.push(node);
+      
+      // Find all nodes that feed into this node (reverse edges)
+      const sourceEdges = workflow.definition.edges.filter(e => e.target._id === nodeId);
+      for (const edge of sourceEdges) {
+        traverse(edge.source._id);
+      }
+    };
+    
+    // Start from output and traverse backwards
+    traverse(outputNodeId);
+    
+    // Reverse to get execution order: input -> transforms -> output
+    return path.reverse();
+  }
+
+  /**
+   * Execute a path of nodes sequentially
+   */
+  private async executePath(
+    path: WorkflowNode[], 
+    workflow: Workflow, 
+    globalResults: Record<string, any>
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    const pathResults: Record<string, any> = {};
+    
+    console.log(`[DEBUG] Executing path with ${path.length} nodes:`, path.map(n => `${n.type}(${n._id.slice(0,8)})`));
+    
+    for (const node of path) {
+      console.log(`[DEBUG] Executing ${node.type} node ${node._id.slice(0,8)}...`);
+      const result = await this.executeNodeInPath(node, workflow, pathResults, globalResults);
+      
+      if (!result.success) {
+        return {
+          success: false,
+          error: `Node ${node._id} (${node.type}) execution failed: ${result.error}`
+        };
+      }
+      
+      pathResults[node._id] = result.data;
+      
+      // Log data sample for debugging
+      if (Array.isArray(result.data) && result.data.length > 0) {
+        console.log(`[DEBUG] ${node.type} result columns:`, Object.keys(result.data[0]));
+      }
+    }
+    
+    // Return the last node's result (the output node)
+    const lastNode = path[path.length - 1];
+    console.log(`[DEBUG] Path complete. Final output columns:`, Array.isArray(pathResults[lastNode._id]) && pathResults[lastNode._id].length > 0 ? Object.keys(pathResults[lastNode._id][0]) : 'N/A');
+    return {
+      success: true,
+      data: pathResults[lastNode._id]
+    };
+  }
+
+  /**
+   * Execute a single node within a path context
+   */
+  private async executeNodeInPath(
+    node: WorkflowNode,
+    workflow: Workflow,
+    pathResults: Record<string, any>,
+    globalResults: Record<string, any>
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    switch (node.type) {
+      case 'input':
+        return await this.executeInputNode(node, workflow, globalResults);
+      case 'transform':
+        return await this.executeTransformNodeInPath(node, workflow, pathResults);
+      case 'output':
+        return await this.executeOutputNodeInPath(node, workflow, pathResults);
+      default:
+        return {
+          success: false,
+          error: `Unknown node type: ${(node as any).type}`
+        };
+    }
+  }
+
+  /**
+   * Execute transform node using only path context (previous results in this path)
+   */
+  private async executeTransformNodeInPath(
+    node: WorkflowNode,
+    workflow: Workflow,
+    pathResults: Record<string, any>
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const transformData = node.data as any;
+      const transformType = transformData.transformType as TransformType;
+      
+      // Get input data from the previous node in this path
+      const sourceNodeId = this.getSourceNodeIdInPath(node._id, workflow, pathResults);
+      if (!sourceNodeId) {
+        return {
+          success: false,
+          error: `Transform node ${node._id} has no connected input data in its path`
+        };
+      }
+      
+      // Deep clone to prevent mutation across paths
+      const inputData = this.deepClone(pathResults[sourceNodeId]);
+      console.log(`[DEBUG] Transform ${node._id.slice(0,8)} input columns:`, Array.isArray(inputData) && inputData.length > 0 ? Object.keys(inputData[0]) : 'N/A');
+      
+      if (!inputData) {
+        return {
+          success: false,
+          error: `No input data available for transform node ${node._id}`
+        };
+      }
+
+      // Apply the transformation
+      let result;
+      switch (transformType) {
+        case TransformType.NONE:
+          result = inputData;
+          break;
+        case TransformType.FILTER:
+          result = this.applyFilterTransformation(inputData, transformData);
+          break;
+        case TransformType.DROP_COLUMN:
+          result = this.applyDropColumnTransformation(inputData, transformData);
+          break;
+        case TransformType.RENAME_COLUMN:
+          result = this.applyRenameColumnTransformation(inputData, transformData);
+          break;
+        case TransformType.NORMALIZE:
+          result = this.applyNormalizeTransformation(inputData, transformData);
+          break;
+        case TransformType.FILL_NA:
+          result = this.applyFillNATransformation(inputData, transformData);
+          break;
+        case TransformType.TRIM:
+          result = this.applyTrimTransformation(inputData, transformData);
+          break;
+        case TransformType.TO_UPPER:
+          result = this.applyToUpperTransformation(inputData, transformData);
+          break;
+        case TransformType.TO_LOWER:
+          result = this.applyToLowerTransformation(inputData, transformData);
+          break;
+        case TransformType.CONVERT_TO_STRING:
+          result = this.applyConvertToStringTransformation(inputData, transformData);
+          break;
+        case TransformType.CONVERT_TO_NUMERIC:
+          result = this.applyConvertToNumericTransformation(inputData, transformData);
+          break;
+        case TransformType.ROUND_NUMBERS:
+          result = this.applyRoundNumbersTransformation(inputData, transformData);
+          break;
+        case TransformType.FORMAT_NUMBERS:
+          result = this.applyFormatNumbersTransformation(inputData, transformData);
+          break;
+        case TransformType.STRIP_WHITESPACE:
+          result = this.applyStripWhitespaceTransformation(inputData, transformData);
+          break;
+        case TransformType.REMOVE_SPECIAL_CHARS:
+          result = this.applyRemoveSpecialCharsTransformation(inputData, transformData);
+          break;
+        case TransformType.EXTRACT_NUMBERS:
+          result = this.applyExtractNumbersTransformation(inputData, transformData);
+          break;
+        case TransformType.EXTRACT_STRINGS:
+          result = this.applyExtractStringsTransformation(inputData, transformData);
+          break;
+        default:
+          return {
+            success: false,
+            error: `Unsupported transform type: ${transformType}`
+          };
+      }
+
+      console.log(`[DEBUG] Transform ${node._id.slice(0,8)} result columns:`, Array.isArray(result) && result.length > 0 ? Object.keys(result[0]) : 'N/A');
+
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Transform node execution error: ${error instanceof Error ? error.message : String(error)}`
+      };
+    }
+  }
+
+  /**
+   * Get the source node ID that feeds into this node within the current path
+   */
+  private getSourceNodeIdInPath(
+    nodeId: string, 
+    workflow: Workflow, 
+    pathResults: Record<string, any>
+  ): string | null {
+    // Find edges where this node is the target
+    const incomingEdges = workflow.definition.edges.filter(e => e.target._id === nodeId);
+    
+    // Return the first source that exists in our path results
+    for (const edge of incomingEdges) {
+      if (pathResults.hasOwnProperty(edge.source._id)) {
+        return edge.source._id;
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Deep clone data to prevent mutation across paths
+   */
+  private deepClone(data: any): any {
+    if (data === null || typeof data !== 'object') {
+      return data;
+    }
+    if (Array.isArray(data)) {
+      return data.map(item => this.deepClone(item));
+    }
+    const cloned: any = {};
+    for (const key in data) {
+      if (data.hasOwnProperty(key)) {
+        cloned[key] = this.deepClone(data[key]);
+      }
+    }
+    return cloned;
+  }
+
+  /**
+   * Execute output node using only path context
+   */
+  private async executeOutputNodeInPath(
+    node: WorkflowNode,
+    workflow: Workflow,
+    pathResults: Record<string, any>
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const outputData = node.data as any;
+      
+      // Get input data from the source node in this path
+      const sourceNodeId = this.getSourceNodeIdInPath(node._id, workflow, pathResults);
+      if (!sourceNodeId) {
+        return {
+          success: false,
+          error: `Output node ${node._id} has no connected input data in its path`
+        };
+      }
+
+      const inputData = pathResults[sourceNodeId];
+      if (!inputData) {
+        return {
+          success: false,
+          error: `No input data available for output node ${node._id}`
+        };
+      }
+
+      // Convert the data to the specified output format
+      let outputContent;
+      try {
+        switch (outputData.file?.fileFormat?.toLowerCase()) {
+          case 'csv':
+            outputContent = this.convertToCSV(inputData);
+            break;
+          case 'json':
+            outputContent = JSON.stringify(inputData, null, 2);
+            break;
+          case 'xml':
+            outputContent = this.convertToXML(inputData);
+            break;
+          default:
+            outputContent = JSON.stringify(inputData, null, 2);
+        }
+      } catch (convertError) {
+        return {
+          success: false,
+          error: `Failed to convert data to output format: ${convertError instanceof Error ? convertError.message : String(convertError)}`
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          fileName: outputData.file?.filename || `output_${node._id}.json`,
+          fileFormat: outputData.file?.fileFormat || 'json',
+          content: outputContent,
+          processedData: inputData // Include the processed data for preview
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Output node execution error: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }
@@ -282,231 +582,61 @@ export class WorkflowEngine {
     return { success: true, order };
   }
 
-  /**
-   * Execute a single node based on its type
-   */
+  // Legacy method - kept for compatibility
   async executeNode(
     node: WorkflowNode, 
     workflow: Workflow,
     nodeResults: Record<string, any>
   ): Promise<{ success: boolean; data?: any; error?: string }> {
-    try {
-      switch (node.type) {
-        case 'input':
-          return await this.executeInputNode(node, workflow, nodeResults);
-        case 'transform':
-          return await this.executeTransformNode(node, workflow, nodeResults);
-        case 'output':
-          return await this.executeOutputNode(node, workflow, nodeResults);
-        default:
-          return { 
-            success: false, 
-            error: `Unknown node type: ${(node as any).type}` 
-          };
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: `Node execution error: ${error instanceof Error ? error.message : String(error)}`
-      };
-    }
-            parsedData = JSON.parse(inputData.file.fileContent);
-          } else {
-            parsedData = this.parseCSV(inputData.file.fileContent);
-          }
-      }
-    } catch (parseError) {
-      return { 
-        success: false, 
-        error: `Failed to parse input file: ${parseError instanceof Error ? parseError.message : String(parseError)}` 
-      };
-    }
-
-    return { 
-      success: true, 
-      data: parsedData 
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: `Input node execution error: ${error instanceof Error ? error.message : String(error)}`
-    };
-  private async executeTransformNode(
-    node: WorkflowNode,
-    workflow: Workflow,
-    nodeResults: Record<string, any>
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
-    try {
-      const transformData = node.data as any;
-      const transformType = transformData.transformType as TransformType;
-      
-      // Find the input data from connected source nodes
-      const inputNodeIds = this.getInputNodeIds(node._id, workflow);
-      if (inputNodeIds.length === 0) {
-        return { 
-          success: false, 
-          error: `Transform node ${node._id} has no connected input data` 
-        };
-      }
-
-      // Get the data from the first input (in a more complex system, we might merge multiple inputs)
-      let inputData = nodeResults[inputNodeIds[0]];
-      if (!inputData) {
-        return { 
-          success: false, 
-          error: `No input data available for transform node ${node._id}` 
-        };
-      }
-
-      // Apply the transformation
-      let result;
-      switch (transformType) {
-        case TransformType.NONE:
-          result = inputData; // Just pass through
-          break;
-        case TransformType.FILTER:
-          result = this.applyFilterTransformation(inputData, transformData);
-          break;
-        case TransformType.DROP_COLUMN:
-          result = this.applyDropColumnTransformation(inputData, transformData);
-          break;
-        case TransformType.RENAME_COLUMN:
-          result = this.applyRenameColumnTransformation(inputData, transformData);
-          break;
-        case TransformType.NORMALIZE:
-          result = this.applyNormalizeTransformation(inputData, transformData);
-          break;
-        case TransformType.FILL_NA:
-          result = this.applyFillNATransformation(inputData, transformData);
-          break;
-        case TransformType.TRIM:
-          result = this.applyTrimTransformation(inputData, transformData);
-          break;
-        case TransformType.TO_UPPER:
-          result = this.applyToUpperTransformation(inputData, transformData);
-          break;
-        case TransformType.TO_LOWER:
-          result = this.applyToLowerTransformation(inputData, transformData);
-          break;
-        case TransformType.CONVERT_TO_STRING:
-          result = this.applyConvertToStringTransformation(inputData, transformData);
-          break;
-        case TransformType.CONVERT_TO_NUMERIC:
-          result = this.applyConvertToNumericTransformation(inputData, transformData);
-          break;
-        case TransformType.ROUND_NUMBERS:
-          result = this.applyRoundNumbersTransformation(inputData, transformData);
-          break;
-        case TransformType.FORMAT_NUMBERS:
-          result = this.applyFormatNumbersTransformation(inputData, transformData);
-          break;
-        case TransformType.STRIP_WHITESPACE:
-          result = this.applyStripWhitespaceTransformation(inputData, transformData);
-          break;
-        case TransformType.REMOVE_SPECIAL_CHARS:
-          result = this.applyRemoveSpecialCharsTransformation(inputData, transformData);
-          break;
-        case TransformType.EXTRACT_NUMBERS:
-          result = this.applyExtractNumbersTransformation(inputData, transformData);
-          break;
-        case TransformType.EXTRACT_STRINGS:
-          result = this.applyExtractStringsTransformation(inputData, transformData);
-          break;
-        default:
-          return { 
-            success: false, 
-            error: `Unsupported transform type: ${transformType}` 
-          };
-      }
-
-      return { 
-        success: true, 
-        data: result 
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: `Transform node execution error: ${error instanceof Error ? error.message : String(error)}`
-      };
-    }
+    return this.executeNodeInPath(node, workflow, nodeResults, nodeResults);
   }
 
   /**
-   * Execute an output node
+   * Execute an input node
    */
-  private async executeOutputNode(
+  private async executeInputNode(
     node: WorkflowNode,
     workflow: Workflow,
     nodeResults: Record<string, any>
   ): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
-      const outputData = node.data as any;
+      const inputData = node.data as any;
       
-      // Find the input data from connected source nodes
-      const inputNodeIds = this.getInputNodeIds(node._id, workflow);
-      if (inputNodeIds.length === 0) {
-        return { 
-          success: false, 
-          error: `Output node ${node._id} has no connected input data` 
+      if (!inputData.file?.fileContent) {
+        return {
+          success: false,
+          error: `Input node ${node._id} has no file content`
         };
       }
 
-      // Get the data from the first input (in a more complex system, we might merge multiple inputs)
-      let inputData = nodeResults[inputNodeIds[0]];
-      if (!inputData) {
-        return { 
-          success: false, 
-          error: `No input data available for output node ${node._id}` 
-        };
-      }
-
-      // Convert the data to the specified output format
-      let outputContent;
+      let parsedData;
       try {
-        switch (outputData.file?.fileFormat?.toLowerCase()) {
-          case 'csv':
-            outputContent = this.convertToCSV(inputData);
-            break;
-          case 'json':
-            outputContent = JSON.stringify(inputData, null, 2);
-            break;
-          case 'xml':
-            outputContent = this.convertToXML(inputData);
-            break;
-          default:
-            // Default to JSON
-            outputContent = JSON.stringify(inputData, null, 2);
+        const fileFormat = inputData.file?.fileFormat?.toLowerCase();
+        if (fileFormat === 'csv') {
+          parsedData = this.parseCSV(inputData.file.fileContent);
+        } else if (fileFormat === 'xml') {
+          parsedData = this.parseXML(inputData.file.fileContent);
+        } else {
+          // Default to JSON
+          parsedData = JSON.parse(inputData.file.fileContent);
         }
-      } catch (convertError) {
-        return { 
-          success: false, 
-          error: `Failed to convert data to output format: ${convertError instanceof Error ? convertError.message : String(convertError)}` 
+      } catch (parseError) {
+        return {
+          success: false,
+          error: `Failed to parse input file: ${parseError instanceof Error ? parseError.message : String(parseError)}`
         };
       }
 
-      return { 
-        success: true, 
-        data: {
-          fileName: outputData.file?.filename || `output_${node._id}.json`,
-          fileFormat: outputData.file?.fileFormat || 'json',
-          content: outputContent
-        }
+      return {
+        success: true,
+        data: this.deepClone(parsedData)
       };
     } catch (error) {
       return {
         success: false,
-        error: `Output node execution error: ${error instanceof Error ? error.message : String(error)}`
+        error: `Input node execution error: ${error instanceof Error ? error.message : String(error)}`
       };
     }
-  }
-
-  /**
-   * Get IDs of nodes that feed into the given node
-   */
-  private getInputNodeIds(targetNodeId: string, workflow: Workflow): string[] {
-    return workflow.definition.edges
-      .filter(edge => edge.target._id === targetNodeId)
-      .map(edge => edge.source._id);
   }
 
   /**
@@ -570,30 +700,23 @@ export class WorkflowEngine {
    * Convert data to XML format
    */
   private convertToXML(data: any): string {
-    // In a real implementation, we'd use a proper XML builder
-    // For now, we'll return a simplified representation
-    return JSON.stringify(data, null, 2); // Placeholder
+    return JSON.stringify(data, null, 2);
   }
 
-  /**
-   * Apply filter transformation
-   */
+  // ==================== TRANSFORMATION METHODS ====================
+
   private applyFilterTransformation(data: any[], transformData: any): any[] {
     const { columnName, condition } = transformData;
     
     if (!columnName || !condition) {
-      return data; // No filtering applied
+      return data;
     }
 
-    // Simple condition evaluation - in a real system, this would be more robust
     try {
-      // For now, implement a basic filter based on column value
-      // This is a simplified implementation - a real one would support complex conditions
       return data.filter(row => {
         const value = row[columnName];
         if (value === undefined) return false;
         
-        // Simple condition evaluation (e.g., "age > 20")
         if (condition.includes('>')) {
           const parts = condition.split('>');
           const col = parts[0].trim();
@@ -617,23 +740,17 @@ export class WorkflowEngine {
           }
         }
         
-        return true; // Default to include if condition doesn't match our format
+        return true;
       });
     } catch (error) {
       console.warn(`Error applying filter transformation: ${error}`);
-      return data; // Return original data if filter fails
+      return data;
     }
   }
 
-  /**
-   * Apply drop column transformation
-   */
   private applyDropColumnTransformation(data: any[], transformData: any): any[] {
     const { columnName } = transformData;
-    
-    if (!columnName) {
-      return data; // No column to drop
-    }
+    if (!columnName) return data;
 
     return data.map(row => {
       const newRow = { ...row };
@@ -642,15 +759,9 @@ export class WorkflowEngine {
     });
   }
 
-  /**
-   * Apply rename column transformation
-   */
   private applyRenameColumnTransformation(data: any[], transformData: any): any[] {
     const { columnName, targetValue } = transformData;
-    
-    if (!columnName || !targetValue) {
-      return data; // No renaming to perform
-    }
+    if (!columnName || !targetValue) return data;
 
     return data.map(row => {
       const newRow = { ...row };
@@ -662,26 +773,17 @@ export class WorkflowEngine {
     });
   }
 
-  /**
-   * Apply normalize transformation
-   */
   private applyNormalizeTransformation(data: any[], transformData: any): any[] {
     const { columnName } = transformData;
-    
-    if (!columnName) {
-      return data; // No column to normalize
-    }
+    if (!columnName) return data;
 
-    // Extract values to normalize
     const values = data.map(row => parseFloat(row[columnName])).filter(val => !isNaN(val));
     if (values.length === 0) return data;
 
-    // Calculate min and max
     const min = Math.min(...values);
     const max = Math.max(...values);
     const range = max - min;
 
-    // Normalize values to 0-1 range
     return data.map(row => {
       if (row.hasOwnProperty(columnName) && !isNaN(parseFloat(row[columnName]))) {
         const val = parseFloat(row[columnName]);
@@ -693,15 +795,9 @@ export class WorkflowEngine {
     });
   }
 
-  /**
-   * Apply fill NA transformation
-   */
   private applyFillNATransformation(data: any[], transformData: any): any[] {
     const { columnName, targetValue } = transformData;
-    
-    if (!columnName) {
-      return data; // No column specified
-    }
+    if (!columnName) return data;
 
     return data.map(row => {
       if (row.hasOwnProperty(columnName) && 
@@ -712,14 +808,10 @@ export class WorkflowEngine {
     });
   }
 
-  /**
-   * Apply trim transformation
-   */
   private applyTrimTransformation(data: any[], transformData: any): any[] {
     const { columnName } = transformData;
     
     if (!columnName) {
-      // Trim all string values in all columns
       return data.map(row => {
         const newRow = { ...row };
         for (const key in newRow) {
@@ -731,7 +823,6 @@ export class WorkflowEngine {
       });
     }
 
-    // Trim only the specified column
     return data.map(row => {
       if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'string') {
         row[columnName] = (row[columnName] as string).trim();
@@ -740,14 +831,10 @@ export class WorkflowEngine {
     });
   }
 
-  /**
-   * Apply to upper case transformation
-   */
   private applyToUpperTransformation(data: any[], transformData: any): any[] {
     const { columnName } = transformData;
     
     if (!columnName) {
-      // Convert all string values in all columns to uppercase
       return data.map(row => {
         const newRow = { ...row };
         for (const key in newRow) {
@@ -759,7 +846,6 @@ export class WorkflowEngine {
       });
     }
 
-    // Convert only the specified column to uppercase
     return data.map(row => {
       if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'string') {
         row[columnName] = (row[columnName] as string).toUpperCase();
@@ -768,14 +854,10 @@ export class WorkflowEngine {
     });
   }
 
-  /**
-   * Apply to lower case transformation
-   */
   private applyToLowerTransformation(data: any[], transformData: any): any[] {
     const { columnName } = transformData;
     
     if (!columnName) {
-      // Convert all string values in all columns to lowercase
       return data.map(row => {
         const newRow = { ...row };
         for (const key in newRow) {
@@ -787,7 +869,6 @@ export class WorkflowEngine {
       });
     }
 
-    // Convert only the specified column to lowercase
     return data.map(row => {
       if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'string') {
         row[columnName] = (row[columnName] as string).toLowerCase();
@@ -795,17 +876,11 @@ export class WorkflowEngine {
       return row;
     });
   }
-  
-  /**
-   * Apply convert to string transformation
-   */
+
   private applyConvertToStringTransformation(data: any[], transformData: any): any[] {
     const { columnName } = transformData;
-    
-    if (!columnName) {
-      return data; // Need to specify a column
-    }
-    
+    if (!columnName) return data;
+
     return data.map(row => {
       if (row.hasOwnProperty(columnName)) {
         row[columnName] = String(row[columnName]);
@@ -813,88 +888,61 @@ export class WorkflowEngine {
       return row;
     });
   }
-  
-  /**
-   * Apply convert to numeric transformation
-   */
+
   private applyConvertToNumericTransformation(data: any[], transformData: any): any[] {
     const { columnName } = transformData;
-    
-    if (!columnName) {
-      return data; // Need to specify a column
-    }
-    
+    if (!columnName) return data;
+
     return data.map(row => {
       if (row.hasOwnProperty(columnName)) {
         const value = row[columnName];
         if (typeof value === 'string') {
-          // Try to parse as number
           const numValue = parseFloat(value);
           if (!isNaN(numValue)) {
             row[columnName] = numValue;
           }
         } else if (typeof value === 'number') {
-          // Already a number, keep as is
           row[columnName] = value;
         } else {
-          // Convert other types to number
           row[columnName] = Number(value);
         }
       }
       return row;
     });
   }
-  
-  /**
-   * Apply round numbers transformation
-   */
+
   private applyRoundNumbersTransformation(data: any[], transformData: any): any[] {
     const { columnName, targetValue } = transformData;
-    
-    if (!columnName) {
-      return data; // Need to specify a column
-    }
-    
+    if (!columnName) return data;
+
     const decimalPlaces = targetValue ? parseInt(targetValue, 10) : 0;
-    
+
     return data.map(row => {
       if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'number') {
-        const value = row[columnName];
-        row[columnName] = Number(value.toFixed(decimalPlaces));
+        row[columnName] = Number(row[columnName].toFixed(decimalPlaces));
       }
       return row;
     });
   }
-  
-  /**
-   * Apply format numbers transformation
-   */
+
   private applyFormatNumbersTransformation(data: any[], transformData: any): any[] {
     const { columnName, targetValue } = transformData;
-    
-    if (!columnName) {
-      return data; // Need to specify a column
-    }
-    
+    if (!columnName) return data;
+
     const decimalPlaces = targetValue ? parseInt(targetValue, 10) : 2;
-    
+
     return data.map(row => {
       if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'number') {
-        const value = row[columnName];
-        row[columnName] = value.toFixed(decimalPlaces);
+        row[columnName] = row[columnName].toFixed(decimalPlaces);
       }
       return row;
     });
   }
-  
-  /**
-   * Apply strip whitespace transformation
-   */
+
   private applyStripWhitespaceTransformation(data: any[], transformData: any): any[] {
     const { columnName } = transformData;
     
     if (!columnName) {
-      // Strip whitespace from all string values in all columns
       return data.map(row => {
         const newRow = { ...row };
         for (const key in newRow) {
@@ -906,7 +954,6 @@ export class WorkflowEngine {
       });
     }
 
-    // Strip whitespace only from the specified column
     return data.map(row => {
       if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'string') {
         row[columnName] = (row[columnName] as string).replace(/\s+/g, '');
@@ -914,20 +961,13 @@ export class WorkflowEngine {
       return row;
     });
   }
-  
-  /**
-   * Apply remove special characters transformation
-   */
+
   private applyRemoveSpecialCharsTransformation(data: any[], transformData: any): any[] {
     const { columnName, targetValue } = transformData;
-    
-    if (!columnName) {
-      return data; // Need to specify a column
-    }
-    
-    // Default pattern removes everything that's not alphanumeric or space
+    if (!columnName) return data;
+
     const pattern = targetValue ? new RegExp(targetValue, 'g') : /[^a-zA-Z0-9\s]/g;
-    
+
     return data.map(row => {
       if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'string') {
         row[columnName] = (row[columnName] as string).replace(pattern, '');
@@ -935,44 +975,26 @@ export class WorkflowEngine {
       return row;
     });
   }
-  
-  /**
-   * Apply extract numbers transformation
-   */
+
   private applyExtractNumbersTransformation(data: any[], transformData: any): any[] {
     const { columnName } = transformData;
-    
-    if (!columnName) {
-      return data; // Need to specify a column
-    }
-    
+    if (!columnName) return data;
+
     return data.map(row => {
       if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'string') {
-        // Extract all numbers and join them
         const numbers = (row[columnName] as string).match(/\d+(?:\.\d+)?/g);
-        if (numbers) {
-          row[columnName] = numbers.join('');
-        } else {
-          row[columnName] = '';
-        }
+        row[columnName] = numbers ? numbers.join('') : '';
       }
       return row;
     });
   }
-  
-  /**
-   * Apply extract strings transformation
-   */
+
   private applyExtractStringsTransformation(data: any[], transformData: any): any[] {
     const { columnName } = transformData;
-    
-    if (!columnName) {
-      return data; // Need to specify a column
-    }
-    
+    if (!columnName) return data;
+
     return data.map(row => {
       if (row.hasOwnProperty(columnName) && typeof row[columnName] === 'string') {
-        // Extract all alphabetic characters and spaces
         row[columnName] = (row[columnName] as string).replace(/[^a-zA-Z\s]/g, '');
       }
       return row;

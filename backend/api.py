@@ -94,10 +94,10 @@ def apply_single_transform():
             print(f"FILL_NA: column={column_name}, fill_value={fill_value}")  # Debug log
             
             if column_name and column_name in df.columns:
+                # Convert to numeric first if fill_value is numeric
+                if fill_value and (str(fill_value)).replace('.', '').isdigit():
+                    fill_value = float(fill_value)
                 df[column_name] = df[column_name].fillna(fill_value)
-            else:
-                # Fill all columns with the specified value
-                df = df.fillna(fill_value)
             
             processor.dataframes['temp_result'] = df
             result_df = df
@@ -195,6 +195,8 @@ def apply_single_transform():
             print(f"ROUND_NUMBERS: column={column_name}")  # Debug log
             
             if column_name and column_name in df.columns:
+                # Convert to numeric first (in case values are strings)
+                df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
                 df[column_name] = df[column_name].round()
             
             processor.dataframes['temp_result'] = df
@@ -207,7 +209,26 @@ def apply_single_transform():
             print(f"FORMAT_NUMBERS: column={column_name}")  # Debug log
             
             if column_name and column_name in df.columns:
-                df[column_name] = df[column_name].apply(lambda x: f"{x:,.2f}")
+                # Convert to numeric first (in case values are strings)
+                df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
+                df[column_name] = df[column_name].apply(lambda x: f"{x:,.2f}" if pd.notna(x) else "")
+            
+            processor.dataframes['temp_result'] = df
+            result_df = df
+        elif transform_type.upper() == 'NORMALIZE':
+            # For NORMALIZE, scale column to 0-1 range
+            df = processor.dataframes['temp_input'].copy()
+            column_name = params.get('columnName')
+            
+            print(f"NORMALIZE: column={column_name}")  # Debug log
+            
+            if column_name and column_name in df.columns:
+                # Convert to numeric first (in case values are strings)
+                df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
+                min_val = df[column_name].min()
+                max_val = df[column_name].max()
+                if max_val - min_val != 0:
+                    df[column_name] = (df[column_name] - min_val) / (max_val - min_val)
             
             processor.dataframes['temp_result'] = df
             result_df = df
@@ -274,8 +295,19 @@ def apply_single_transform():
             if operation == TransformOperation.FILTER:
                 # Check if condition is already in params and use it
                 actual_condition = params.get('condition', transform_type.lower())
+                actual_value = params.get('targetValue', params.get('value', ''))
+                
+                # Parse combined condition like ">=40000" into operator and value
+                if actual_condition and not actual_value:
+                    import re
+                    match = re.match(r'([><=!]+)(.+)', str(actual_condition).strip())
+                    if match:
+                        actual_condition = match.group(1)
+                        actual_value = match.group(2).strip()
+                        print(f"Parsed condition: {actual_condition}, value: {actual_value}")
+                
                 params['condition'] = actual_condition
-                params['value'] = params.get('targetValue', params.get('value', ''))
+                params['value'] = actual_value
             
             result_id = processor.apply_transformation('temp_input', operation, **params)
             result_df = processor.get_dataframe(result_id)
@@ -340,12 +372,27 @@ def generate_graph():
         y_col = data.get('y_col')
         title = data.get('title', 'Generated Chart')
         
-        if not df_data or not x_col:
-            return jsonify({'success': False, 'error': 'Missing data or x column'}), 400
+        print(f"[GRAPH] Received request: type={graph_type}, x={x_col}, y={y_col}, data_rows={len(df_data) if df_data else 0}")
+        
+        if not df_data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        if not x_col:
+            return jsonify({'success': False, 'error': 'X column not selected'}), 400
         
         # Create a temporary processor to generate the graph
         processor = SimpleDataProcessor()
         processor.load_input_data(df_data, 'temp_input')
+        
+        # Verify data was loaded
+        df = processor.get_dataframe('temp_input')
+        print(f"[GRAPH] Loaded dataframe: {df.shape}, columns={list(df.columns)}")
+        
+        if x_col not in df.columns:
+            return jsonify({'success': False, 'error': f'X column "{x_col}" not found in data. Available: {list(df.columns)}'}), 400
+        
+        if y_col and y_col not in df.columns:
+            return jsonify({'success': False, 'error': f'Y column "{y_col}" not found in data. Available: {list(df.columns)}'}), 400
         
         # For graph generation, we'll use the original workflow service processor
         # since the simple processor doesn't have graph generation
@@ -353,12 +400,18 @@ def generate_graph():
         original_processor.load_input_data(df_data, 'temp_input')
         graph_url = original_processor.generate_graph('temp_input', graph_type, x_col, y_col, title)
         
+        if not graph_url:
+            return jsonify({'success': False, 'error': 'Graph generation failed - check backend logs for details'}), 500
+        
+        print(f"[GRAPH] Generated successfully")
+        
         return jsonify({
             'success': True,
             'graph_url': graph_url
         })
     
     except Exception as e:
+        print(f"[GRAPH] Error: {str(e)}")  # Detailed error logging
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

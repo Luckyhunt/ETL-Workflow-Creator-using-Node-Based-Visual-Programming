@@ -25,6 +25,7 @@ const Sidebar = () => {
     const [yColumn, setYColumn] = useState<string>('')
     const [availableColumns, setAvailableColumns] = useState<string[]>([])
     const [numericColumns, setNumericColumns] = useState<string[]>([])
+    const [selectedOutputNode, setSelectedOutputNode] = useState<string>('')
     const navigate = useNavigate()
     const { workflow, addNode, deleteDraft, shareWorkflow, updateNode } = useWorkflow()
 
@@ -86,48 +87,31 @@ const Sidebar = () => {
             
             if (result.success) {
                 const results = result.results || {};
-                const outputNodeIds = Object.keys(results).filter(id => {
-                    const node = workflow.definition.nodes.find(n => n._id === id);
-                    return node?.type === 'output';
+                
+                // Update each output node with its OWN execution result
+                const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
+                
+                outputNodes.forEach((outputNode, index) => {
+                    const nodeResult = results[outputNode._id];
+                    if (!nodeResult) return;
+                    
+                    const outputData = outputNode.data as { file: any };
+                    const outputName = outputNodes.length > 1 ? `Output ${index + 1}` : 'Output';
+                    
+                    // Get the actual data - could be wrapped in .data property or direct
+                    const processedData = nodeResult.processedData || nodeResult.data || nodeResult;
+                    
+                    updateNode(outputNode._id, {
+                        file: {
+                            ...outputData.file,
+                            filename: outputData.file?.filename || `${outputName.toLowerCase().replace(/\s+/g, '_')}.json`,
+                            content: JSON.stringify(processedData, null, 2),
+                            processedData: processedData
+                        }
+                    });
                 });
                 
-                let finalData = null;
-                let finalNodeId = null;
-                
-                if (outputNodeIds.length > 0) {
-                    finalNodeId = outputNodeIds[outputNodeIds.length - 1];
-                    finalData = results[finalNodeId]?.data;
-                } else {
-                    const transformNodeIds = Object.keys(results).filter(id => {
-                        const node = workflow.definition.nodes.find(n => n._id === id);
-                        return node?.type === 'transform';
-                    });
-                    if (transformNodeIds.length > 0) {
-                        finalNodeId = transformNodeIds[transformNodeIds.length - 1];
-                        finalData = results[finalNodeId]?.data;
-                    }
-                }
-                
-                if (finalData && finalNodeId) {
-                    const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
-                    
-                    // Update all output nodes with the final data
-                    outputNodes.forEach((outputNode, index) => {
-                        const outputData = outputNode.data as { file: any };
-                        const outputName = outputNodes.length > 1 ? `Output ${index + 1}` : 'Output';
-                            
-                        updateNode(outputNode._id, {
-                            file: {
-                                ...outputData.file,
-                                filename: outputData.file?.filename || `${outputName.toLowerCase().replace(/\s+/g, '_')}.json`,
-                                content: JSON.stringify(finalData, null, 2),
-                                processedData: finalData
-                            }
-                        });
-                    });
-                }
-                
-                console.log("Final Output:", finalData);
+                console.log("All output results:", results);
             } else {
                 console.error("Execution error:", result.error);
             }
@@ -273,6 +257,11 @@ const Sidebar = () => {
                                 setNumericColumns(numericCols);
                                 setXColumn(columns[0] || '');
                                 setYColumn(numericCols[0] || '');
+                                // Set first output node as default
+                                const availableOutputs = workflow.definition.nodes.filter(n => n.type === 'output');
+                                if (availableOutputs.length > 0) {
+                                    setSelectedOutputNode(availableOutputs[0]._id);
+                                }
                                 setShowGraphModal(true);
                             }}>
                                 <span className="icon"><MdBarChart /></span> Show Graph
@@ -331,6 +320,49 @@ const Sidebar = () => {
                         </div>
                         
                         <div style={{ padding: '20px' }}>
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ 
+                                    color: '#6b7280', 
+                                    fontSize: '12px',
+                                    textTransform: 'uppercase',
+                                    fontWeight: '600',
+                                    letterSpacing: '0.5px'
+                                }}>Output Node</label>
+                                <select
+                                    value={selectedOutputNode}
+                                    onChange={(e) => {
+                                        setSelectedOutputNode(e.target.value)
+                                        // Update available columns based on selected output
+                                        const selectedNode = workflow.definition.nodes.find(n => n._id === e.target.value)
+                                        const data = (selectedNode?.data as any)?.file?.processedData || []
+                                        if (data.length > 0) {
+                                            const cols = Object.keys(data[0] || {})
+                                            setAvailableColumns(cols)
+                                            if (cols.length > 0) {
+                                                setXColumn(cols[0])
+                                                if (cols.length > 1) setYColumn(cols[1])
+                                            }
+                                        }
+                                    }}
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '10px', 
+                                        marginTop: '6px',
+                                        backgroundColor: '#ffffff',
+                                        color: '#1f2937',
+                                        border: '1px solid #d1d5db',
+                                        borderRadius: '6px',
+                                        fontSize: '14px'
+                                    }}
+                                >
+                                    {workflow.definition.nodes.filter(n => n.type === 'output').map((node, index) => (
+                                        <option key={node._id} value={node._id}>
+                                            {node.name || `Output ${index + 1}`}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            
                             <div style={{ marginBottom: '15px' }}>
                                 <label style={{ 
                                     color: '#6b7280', 
@@ -412,7 +444,7 @@ const Sidebar = () => {
                                     }}
                                 >
                                     <option value="">None (Count)</option>
-                                    {numericColumns.map(col => (
+                                    {availableColumns.map(col => (
                                         <option key={col} value={col}>{col}</option>
                                     ))}
                                 </select>
@@ -421,8 +453,39 @@ const Sidebar = () => {
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button
                                     onClick={async () => {
-                                        const outputNode = workflow.definition.nodes.find(n => n.type === 'output');
-                                        const processedData = (outputNode?.data as any)?.file?.processedData || [];
+                                        const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
+                                        const outputNode = outputNodes.find(n => n._id === selectedOutputNode) || outputNodes[0];
+                                        
+                                        let processedData = (outputNode?.data as any)?.file?.processedData || [];
+                                        
+                                        console.log('[GRAPH] Raw processedData:', processedData);
+                                        console.log('[GRAPH] Type:', typeof processedData, 'Is Array:', Array.isArray(processedData));
+                                        
+                                        // Flatten if data is nested (array of arrays)
+                                        if (Array.isArray(processedData) && processedData.length > 0 && Array.isArray(processedData[0])) {
+                                            processedData = processedData.flat();
+                                            console.log('[GRAPH] Flattened data:', processedData);
+                                        }
+                                        
+                                        // If data is an object with data property, extract it
+                                        if (!Array.isArray(processedData) && processedData.data && Array.isArray(processedData.data)) {
+                                            processedData = processedData.data;
+                                            console.log('[GRAPH] Extracted data from object:', processedData);
+                                        }
+                                        
+                                        if (!processedData || processedData.length === 0) {
+                                            alert('No data available. Please execute the workflow first.');
+                                            return;
+                                        }
+                                        
+                                        // Check first row structure
+                                        console.log('[GRAPH] First row:', processedData[0]);
+                                        console.log('[GRAPH] Columns:', Object.keys(processedData[0] || {}));
+                                        
+                                        if (!xColumn) {
+                                            alert('Please select an X-axis column.');
+                                            return;
+                                        }
                                         
                                         try {
                                             const result = await workflowExecutionService.generateGraph(
@@ -449,7 +512,8 @@ const Sidebar = () => {
                                                 }
                                                 setShowGraphModal(false);
                                             } else {
-                                                alert('Failed to generate graph: ' + (result.error || 'Unknown error'));
+                                                console.error('[GRAPH] Backend error:', result);
+                                                alert('Failed to generate graph: ' + (result.error || JSON.stringify(result) || 'Unknown error'));
                                             }
                                         } catch (error) {
                                             console.error('Error generating graph:', error);

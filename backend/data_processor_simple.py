@@ -353,10 +353,14 @@ class SimpleDataProcessor:
             if isinstance(val, str):
                 if val.isdigit():
                     val = int(val)
-                elif '.' in val:
+                elif '.' in val and val.replace('.', '').isdigit():
                     val = float(val)
             
-            print(f"DEBUG FILTER: column={column}, op={op}, val={val}")
+            # Convert column to numeric if value is numeric (for proper comparison)
+            if isinstance(val, (int, float)):
+                df_filtered[column] = pd.to_numeric(df_filtered[column], errors='coerce')
+            
+            print(f"DEBUG FILTER: column={column}, op={op}, val={val}, val_type={type(val)}")
             
             # Apply filter using direct comparison
             if op == '>':
@@ -563,6 +567,12 @@ class SimpleDataProcessor:
             
             df = self.get_dataframe(df_id)
             
+            # Convert columns to numeric where possible for plotting
+            df = df.copy()
+            for col in df.columns:
+                if col in [x_col, y_col]:  # Only convert the columns we're plotting
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+            
             # Create figure with light background
             fig, ax = plt.subplots(figsize=(10, 6))
             fig.patch.set_facecolor(CHART_BG)
@@ -628,7 +638,9 @@ class SimpleDataProcessor:
             
         except Exception as e:
             print(f"Graph generation error: {e}")
-            return ""
+            import traceback
+            traceback.print_exc()
+            raise RuntimeError(f"Graph generation failed: {str(e)}")
 
 
 def create_sample_workflow():

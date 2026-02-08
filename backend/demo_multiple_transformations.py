@@ -3,7 +3,7 @@ Demo script to showcase multiple transformations working together
 This demonstrates how the backend handles chained transformations
 """
 
-from data_processor import DataProcessor
+from data_processor_simple import DataProcessor
 from workflow_service import WorkflowService
 import json
 

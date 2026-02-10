@@ -77,11 +77,10 @@ def apply_single_transform():
             'RENAME_COLUMN': TransformOperation.FILTER,
             'NORMALIZE': TransformOperation.NORMALIZE,
             'FILL_NA': TransformOperation.CLEAN_MISSING,
-            'remove_duplicates': TransformOperation.REMOVE_DUPLICATES,
-            'normalize': TransformOperation.NORMALIZE,
-            'aggregate': TransformOperation.AGGREGATE,
-            'sort': TransformOperation.SORT,
-            'group_by': TransformOperation.GROUP_BY
+            'REMOVE_DUPLICATES': TransformOperation.REMOVE_DUPLICATES,
+            'AGGREGATE': TransformOperation.AGGREGATE,
+            'SORT': TransformOperation.SORT,
+            'GROUP_BY': TransformOperation.GROUP_BY
         }
         
         # Handle special operations that require different logic
@@ -253,7 +252,7 @@ def apply_single_transform():
             
             if column_name and column_name in df.columns:
                 # Remove all non-alphanumeric characters
-                df[column_name] = df[column_name].astype(str).str.replace(r'[^a-zA-Z0-9]', '')
+                df[column_name] = df[column_name].astype(str).str.replace(r'[^a-zA-Z0-9]', '', regex=True)
             
             processor.dataframes['temp_result'] = df
             result_df = df
@@ -279,7 +278,7 @@ def apply_single_transform():
             
             if column_name and column_name in df.columns:
                 # Extract non-numeric characters
-                df[column_name] = df[column_name].astype(str).str.replace(r'\d+\.?\d*', '')
+                df[column_name] = df[column_name].astype(str).str.replace(r'\d+\.?\d*', '', regex=True)
             
             processor.dataframes['temp_result'] = df
             result_df = df

@@ -275,7 +275,7 @@ class SimpleDataProcessor:
         for col in df.columns:
             if df[col].dtype == 'object':
                 # Convert to string, strip whitespace, and convert to lowercase
-                df_normalized[col] = df[col].astype(str).str.strip().str.lower()
+                df_normalized[col] = df_normalized[col].astype(str).str.replace(r'[^a-zA-Z0-9\s]', '', regex=True).str.lower()
         
         return df_normalized
     
@@ -325,9 +325,9 @@ class SimpleDataProcessor:
                         else:
                             df_cleaned[col] = df_cleaned[col].fillna("Unknown")
         elif strategy == "forward_fill":
-            df_cleaned = df_cleaned.fillna(method='ffill')
+            df_cleaned = df_cleaned.ffill()
         elif strategy == "backward_fill":
-            df_cleaned = df_cleaned.fillna(method='bfill')
+            df_cleaned = df_cleaned.bfill()
         
         return df_cleaned
     
@@ -403,6 +403,17 @@ class SimpleDataProcessor:
         """
         df_normalized = df.copy()
         
+        # Check if column exists
+        if column not in df_normalized.columns:
+            raise ValueError(f"Column '{column}' not found in dataframe. Available columns: {list(df_normalized.columns)}")
+        
+        # Ensure column is numeric
+        if not pd.api.types.is_numeric_dtype(df_normalized[column]):
+            try:
+                df_normalized[column] = pd.to_numeric(df_normalized[column], errors='coerce')
+            except Exception:
+                raise ValueError(f"Column '{column}' cannot be converted to numeric for normalization")
+        
         if method == "min_max":
             min_val = df_normalized[column].min()
             max_val = df_normalized[column].max()
@@ -424,18 +435,49 @@ class SimpleDataProcessor:
         """
         Aggregate data by groups
         """
+        # Validate group_by columns exist
+        missing_cols = [col for col in group_by if col not in df.columns]
+        if missing_cols:
+            raise ValueError(f"Group by columns not found: {missing_cols}. Available: {list(df.columns)}")
+        
+        # Validate aggregation columns exist
+        agg_cols = list(agg_dict.keys())
+        missing_agg_cols = [col for col in agg_cols if col not in df.columns]
+        if missing_agg_cols:
+            raise ValueError(f"Aggregation columns not found: {missing_agg_cols}. Available: {list(df.columns)}")
+        
         return df.groupby(group_by).agg(agg_dict).reset_index()
     
     def sort_data(self, df: pd.DataFrame, columns: List[str], ascending: List[bool]) -> pd.DataFrame:
         """
         Sort dataframe by columns
         """
+        # Validate columns exist
+        missing_cols = [col for col in columns if col not in df.columns]
+        if missing_cols:
+            raise ValueError(f"Sort columns not found: {missing_cols}. Available: {list(df.columns)}")
+        
+        # Ensure ascending list matches columns length
+        if len(ascending) != len(columns):
+            ascending = [True] * len(columns)
+        
         return df.sort_values(by=columns, ascending=ascending).reset_index(drop=True)
     
     def group_by_operation(self, df: pd.DataFrame, group_by: List[str], operations: Dict[str, str]) -> pd.DataFrame:
         """
         Perform group by operation with multiple aggregations
         """
+        # Validate group_by columns exist
+        missing_cols = [col for col in group_by if col not in df.columns]
+        if missing_cols:
+            raise ValueError(f"Group by columns not found: {missing_cols}. Available: {list(df.columns)}")
+        
+        # Validate operation columns exist
+        op_cols = list(operations.keys())
+        missing_op_cols = [col for col in op_cols if col not in df.columns]
+        if missing_op_cols:
+            raise ValueError(f"Operation columns not found: {missing_op_cols}. Available: {list(df.columns)}")
+        
         grouped = df.groupby(group_by).agg(operations).reset_index()
         return grouped
     

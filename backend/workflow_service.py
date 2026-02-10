@@ -357,7 +357,7 @@ class WorkflowService:
                 df[column_name] = df[column_name].astype(str).str.replace(r'[^a-zA-Z0-9]', '', regex=True)
         
         # Store the transformed dataframe with a new ID
-        result_id = f"{input_source_id}_text_transform"
+        result_id = f"{input_source_id}_text_transform_{len(self.processor.transform_history) + 1}"
         self.processor.dataframes[result_id] = df
         
         print(f"DEBUG TEXT TRANSFORM: result has {len(df)} rows, {len(df.columns)} columns")

@@ -247,7 +247,8 @@ class WorkflowService:
         # Handle text transformations that don't have enum mappings
         text_transforms = ['TO_UPPER', 'TO_LOWER', 'TRIM', 'DROP_COLUMN', 'RENAME_COLUMN',
                           'CONVERT_TO_NUMERIC', 'CONVERT_TO_STRING', 'ROUND_NUMBERS',
-                          'STRIP_WHITESPACE', 'REMOVE_SPECIAL_CHARS']
+                          'STRIP_WHITESPACE', 'REMOVE_SPECIAL_CHARS', 'FILL_NA', 'FORMAT_NUMBERS',
+                          'EXTRACT_NUMBERS', 'EXTRACT_STRINGS']
         
         if transform_type.upper() in text_transforms:
             # Handle text transformations directly
@@ -350,13 +351,60 @@ class WorkflowService:
         
         elif transform_type.upper() == 'ROUND_NUMBERS':
             if column_name and column_name in df.columns:
+                # Convert to numeric first (in case values are strings)
+                df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
                 df[column_name] = df[column_name].round()
         
         elif transform_type.upper() == 'REMOVE_SPECIAL_CHARS':
             if column_name and column_name in df.columns:
                 df[column_name] = df[column_name].astype(str).str.replace(r'[^a-zA-Z0-9]', '', regex=True)
         
-        # Store the transformed dataframe with a new ID
+        elif transform_type.upper() == 'FILL_NA':
+            # Handle fill missing values
+            fill_value = transform_data.get('targetValue') or transform_data.get('fillValue') or ''
+            if column_name and column_name in df.columns:
+                # Check for special fill strategies
+                fill_str = str(fill_value).strip().lower()
+                if fill_str in ['mean', 'median', 'mode']:
+                    # Convert column to numeric for calculation
+                    numeric_col = pd.to_numeric(df[column_name], errors='coerce')
+                    if fill_str == 'mean':
+                        fill_value = numeric_col.mean()
+                    elif fill_str == 'median':
+                        fill_value = numeric_col.median()
+                    elif fill_str == 'mode':
+                        mode_vals = numeric_col.mode()
+                        fill_value = mode_vals[0] if len(mode_vals) > 0 else None
+                    print(f"FILL_NA: calculated {fill_str}={fill_value}")
+                elif fill_value and (str(fill_value)).replace('.', '').isdigit():
+                    fill_value = float(fill_value)
+                
+                # Fill NaN values
+                df[column_name] = df[column_name].fillna(fill_value)
+                # Also replace empty strings with fill_value
+                df[column_name] = df[column_name].replace('', fill_value)
+                # For object columns, also handle None values explicitly
+                if df[column_name].dtype == 'object':
+                    df[column_name] = df[column_name].apply(lambda x: fill_value if x is None or x == '' or (isinstance(x, float) and pd.isna(x)) else x)
+        
+        elif transform_type.upper() == 'FORMAT_NUMBERS':
+            decimal_places = transform_data.get('targetValue') or 2
+            try:
+                decimal_places = int(decimal_places)
+            except:
+                decimal_places = 2
+            if column_name and column_name in df.columns:
+                df[column_name] = df[column_name].apply(lambda x: f"{x:.{decimal_places}f}" if pd.notna(x) and isinstance(x, (int, float)) else x)
+        
+        elif transform_type.upper() == 'EXTRACT_NUMBERS':
+            if column_name and column_name in df.columns:
+                df[column_name] = df[column_name].astype(str).str.extract(r'(\d+\.?\d*)')[0]
+        
+        elif transform_type.upper() == 'EXTRACT_STRINGS':
+            if column_name and column_name in df.columns:
+                df[column_name] = df[column_name].astype(str).str.replace(r'\d+\.?\d*', '', regex=True)
+        
+        # Store the transformed dataframe with a unique ID
         result_id = f"{input_source_id}_text_transform_{len(self.processor.transform_history) + 1}"
         self.processor.dataframes[result_id] = df
         

@@ -93,10 +93,30 @@ def apply_single_transform():
             print(f"FILL_NA: column={column_name}, fill_value={fill_value}")  # Debug log
             
             if column_name and column_name in df.columns:
-                # Convert to numeric first if fill_value is numeric
-                if fill_value and (str(fill_value)).replace('.', '').isdigit():
+                # Check for special fill strategies
+                fill_str = str(fill_value).strip().lower()
+                if fill_str in ['mean', 'median', 'mode']:
+                    # Convert column to numeric for calculation
+                    numeric_col = pd.to_numeric(df[column_name], errors='coerce')
+                    if fill_str == 'mean':
+                        fill_value = numeric_col.mean()
+                    elif fill_str == 'median':
+                        fill_value = numeric_col.median()
+                    elif fill_str == 'mode':
+                        mode_vals = numeric_col.mode()
+                        fill_value = mode_vals[0] if len(mode_vals) > 0 else None
+                    print(f"FILL_NA: calculated {fill_str}={fill_value}")
+                # Convert to numeric first if fill_value is numeric (but not special keywords)
+                elif fill_value and (str(fill_value)).replace('.', '').isdigit():
                     fill_value = float(fill_value)
+                
+                # Fill NaN values
                 df[column_name] = df[column_name].fillna(fill_value)
+                # Also replace empty strings with fill_value
+                df[column_name] = df[column_name].replace('', fill_value)
+                # For object columns, also handle None values explicitly
+                if df[column_name].dtype == 'object':
+                    df[column_name] = df[column_name].apply(lambda x: fill_value if x is None or x == '' or (isinstance(x, float) and pd.isna(x)) else x)
             
             processor.dataframes['temp_result'] = df
             result_df = df

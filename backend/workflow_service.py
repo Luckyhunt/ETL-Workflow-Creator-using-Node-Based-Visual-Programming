@@ -261,17 +261,23 @@ class WorkflowService:
         
         if operation == TransformOperation.FILTER:
             print(f"DEBUG FILTER: condition='{condition}', column_name='{column_name}'")
-            condition_parts = condition.split(' ')
-            print(f"DEBUG FILTER: condition_parts={condition_parts}")
-            if len(condition_parts) >= 2:
-                op = condition_parts[0]  # e.g., '>', '<', '=='
-                value_str = ' '.join(condition_parts[1:])  # e.g., '25'
+            
+            # Parse condition - handle both "> 25" and ">25" formats
+            condition = condition.strip()
+            
+            # Use regex to extract operator and value
+            import re
+            match = re.match(r'^\s*(>?<=?|>=?|!=?|==?)\s*(.+)$', condition)
+            
+            if match:
+                op = match.group(1).strip()
+                value_str = match.group(2).strip()
                 
                 # Try to convert value to appropriate type
                 try:
                     if value_str.isdigit():
                         value = int(value_str)
-                    elif '.' in value_str:
+                    elif re.match(r'^-?\d+\.\d+$', value_str):
                         value = float(value_str)
                     else:
                         value = value_str
@@ -283,9 +289,9 @@ class WorkflowService:
                     'condition': op,
                     'value': value
                 }
-                print(f"DEBUG FILTER: params={params}")
+                print(f"DEBUG FILTER: parsed params={params}")
             else:
-                print(f"DEBUG FILTER: Using default params, condition_parts too short")
+                print(f"DEBUG FILTER: Using default params, could not parse condition: '{condition}'")
                 params = {
                     'column': column_name,
                     'condition': '>',

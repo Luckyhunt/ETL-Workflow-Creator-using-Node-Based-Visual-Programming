@@ -335,56 +335,54 @@ class SimpleDataProcessor:
         """
         Filter data based on condition
         """
+        # Validate column exists
+        if column not in df.columns:
+            raise ValueError(f"Filter column '{column}' not found. Available: {list(df.columns)}")
+        
         df_filtered = df.copy()
         
-        try:
-            # Parse condition like "age > 25" or just ">"
-            if column in condition:
-                # Full expression provided, extract operator and value
-                parts = condition.replace(column, '').strip().split()
-                op = parts[0] if parts else '>'
-                val = parts[1] if len(parts) > 1 else value
-            else:
-                # Just operator provided
-                op = condition.strip()
-                val = value
-            
-            # Convert value to appropriate type
-            if isinstance(val, str):
-                if val.isdigit():
-                    val = int(val)
-                elif '.' in val and val.replace('.', '').isdigit():
-                    val = float(val)
-            
-            # Convert column to numeric if value is numeric (for proper comparison)
-            if isinstance(val, (int, float)):
-                df_filtered[column] = pd.to_numeric(df_filtered[column], errors='coerce')
-            
-            print(f"DEBUG FILTER: column={column}, op={op}, val={val}, val_type={type(val)}")
-            
-            # Apply filter using direct comparison
-            if op == '>':
-                mask = df_filtered[column] > val
-            elif op == '>=':
-                mask = df_filtered[column] >= val
-            elif op == '<':
-                mask = df_filtered[column] < val
-            elif op == '<=':
-                mask = df_filtered[column] <= val
-            elif op == '==' or op == '=':
-                mask = df_filtered[column] == val
-            elif op == '!=':
-                mask = df_filtered[column] != val
-            else:
-                mask = df_filtered[column] == val
-            
-            df_filtered = df_filtered[mask]
-            print(f"DEBUG FILTER: returned {len(df_filtered)} rows")
-            
-        except Exception as e:
-            print(f"Filter error: {e}, returning original data")
-            # Return original data on error
-            return df_filtered
+        # Parse condition like "age > 25" or just ">"
+        if column in condition:
+            # Full expression provided, extract operator and value
+            parts = condition.replace(column, '').strip().split()
+            op = parts[0] if parts else '>'
+            val = parts[1] if len(parts) > 1 else value
+        else:
+            # Just operator provided
+            op = condition.strip()
+            val = value
+        
+        # Convert value to appropriate type
+        if isinstance(val, str):
+            if val.isdigit():
+                val = int(val)
+            elif '.' in val and val.replace('.', '').isdigit():
+                val = float(val)
+        
+        # Convert column to numeric if value is numeric (for proper comparison)
+        if isinstance(val, (int, float)):
+            df_filtered[column] = pd.to_numeric(df_filtered[column], errors='coerce')
+        
+        print(f"DEBUG FILTER: column={column}, op={op}, val={val}, val_type={type(val)}")
+        
+        # Apply filter using direct comparison
+        if op == '>':
+            mask = df_filtered[column] > val
+        elif op == '>=':
+            mask = df_filtered[column] >= val
+        elif op == '<':
+            mask = df_filtered[column] < val
+        elif op == '<=':
+            mask = df_filtered[column] <= val
+        elif op == '==' or op == '=':
+            mask = df_filtered[column] == val
+        elif op == '!=':
+            mask = df_filtered[column] != val
+        else:
+            mask = df_filtered[column] == val
+        
+        df_filtered = df_filtered[mask]
+        print(f"DEBUG FILTER: returned {len(df_filtered)} rows (original {len(df)} rows)")
         
         return df_filtered
     

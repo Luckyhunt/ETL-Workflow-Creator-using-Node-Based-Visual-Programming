@@ -198,15 +198,16 @@ Navigate to `http://localhost:5173` to use the application.
 
 | Category | Transformations |
 |----------|-----------------|
-| **Filter** | Greater than, Less than, Equal to, Not equal to |
+| **Filter** | Greater than (>), Less than (<), Equal to (==), Not equal to (!=), Greater/Less than or equal (>=, <=). Formats: `> 25` or `>25` |
 | **Column Ops** | Drop column, Rename column |
-| **Missing Data** | Fill with mean, Fill with mode, Forward/backward fill |
+| **Missing Data** | Fill with value/mean/median/mode, Forward/backward fill |
 | **Duplicates** | Remove duplicate rows |
 | **Normalize** | Min-Max scaling, Z-Score standardization |
 | **Sort** | Ascending, Descending |
-| **Group By** | Aggregate functions |
-| **Text** | Uppercase, Lowercase, Trim whitespace |
-| **Type Cast** | Convert to numeric, Convert to string |
+| **Group By** | Aggregate functions (sum, mean, count, etc.) |
+| **Text** | Uppercase, Lowercase, Trim whitespace, Remove special chars |
+| **Type Cast** | Convert to numeric, Convert to string, Round numbers |
+| **Extract** | Extract numbers, Extract strings |
 
 ### Graph Types
 

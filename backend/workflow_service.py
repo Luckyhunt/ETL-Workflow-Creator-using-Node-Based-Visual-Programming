@@ -281,7 +281,7 @@ class WorkflowService:
                         value = float(value_str)
                     else:
                         value = value_str
-                except:
+                except Exception:
                     value = value_str
                 
                 params = {
@@ -397,7 +397,7 @@ class WorkflowService:
             decimal_places = transform_data.get('targetValue') or 2
             try:
                 decimal_places = int(decimal_places)
-            except:
+            except Exception:
                 decimal_places = 2
             if column_name and column_name in df.columns:
                 df[column_name] = df[column_name].apply(lambda x: f"{x:.{decimal_places}f}" if pd.notna(x) and isinstance(x, (int, float)) else x)
@@ -410,8 +410,9 @@ class WorkflowService:
             if column_name and column_name in df.columns:
                 df[column_name] = df[column_name].astype(str).str.replace(r'\d+\.?\d*', '', regex=True)
         
-        # Store the transformed dataframe with a unique ID
-        result_id = f"{input_source_id}_text_transform_{len(self.processor.transform_history) + 1}"
+        # Store the transformed dataframe with a unique ID using counter
+        import time
+        result_id = f"{input_source_id}_text_transform_{int(time.time() * 1000)}"
         self.processor.dataframes[result_id] = df
         
         print(f"DEBUG TEXT TRANSFORM: result has {len(df)} rows, {len(df.columns)} columns")

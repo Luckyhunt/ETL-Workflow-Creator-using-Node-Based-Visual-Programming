@@ -26,6 +26,8 @@ const Sidebar = () => {
     const [availableColumns, setAvailableColumns] = useState<string[]>([])
     const [numericColumns, setNumericColumns] = useState<string[]>([])
     const [selectedOutputNode, setSelectedOutputNode] = useState<string>('')
+    const [graphUrl, setGraphUrl] = useState<string | null>(null)
+    const [showGraphDisplay, setShowGraphDisplay] = useState<boolean>(false)
     const navigate = useNavigate()
     const { workflow, addNode, deleteDraft, shareWorkflow, updateNode } = useWorkflow()
 
@@ -217,11 +219,14 @@ const Sidebar = () => {
                         </button>
                     </div>
                     <ul className="management-secondary-actions">
+                        {false && (
                         <li className="management-item">
                             <button onClick={() => alert('Save functionality coming soon!')}>
                                 <span className="icon"><MdSave /></span> Save
                             </button>
                         </li>
+                        )}
+                        {false && (
                         <li className="management-item">
                             <button onClick={async () => {
                                 try {
@@ -235,6 +240,7 @@ const Sidebar = () => {
                                 <span className="icon"><FaShareFromSquare /></span> Share
                             </button>
                         </li>
+                        )}
                         <li className="management-item">
                             <button onClick={() => {
                                 // Get data from LAST output node in the chain
@@ -497,19 +503,8 @@ const Sidebar = () => {
                                             );
                                             
                                             if (result.success && result.graph_url) {
-                                                const graphWindow = window.open('', '_blank', 'width=800,height=600');
-                                                if (graphWindow) {
-                                                    graphWindow.document.write(`
-                                                        <html>
-                                                            <head><title>Workflow Graph</title></head>
-                                                            <body style="margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#f8fafc;">
-                                                                <div style="background:#ffffff;padding:20px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.1);">
-                                                                    <img src="${result.graph_url}" style="max-width:100%;max-height:80vh;border-radius:8px;" />
-                                                                </div>
-                                                            </body>
-                                                        </html>
-                                                    `);
-                                                }
+                                                setGraphUrl(result.graph_url);
+                                                setShowGraphDisplay(true);
                                                 setShowGraphModal(false);
                                             } else {
                                                 console.error('[GRAPH] Backend error:', result);
@@ -551,6 +546,101 @@ const Sidebar = () => {
                                     Cancel
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Graph Display Section */}
+            {showGraphDisplay && graphUrl && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1001
+                }}>
+                    <div style={{
+                        backgroundColor: '#ffffff',
+                        padding: '20px',
+                        borderRadius: '12px',
+                        maxWidth: '90vw',
+                        maxHeight: '90vh',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            width: '100%',
+                            marginBottom: '15px'
+                        }}>
+                            <h3 style={{ margin: 0, color: '#1f2937' }}>Generated Graph</h3>
+                            <button
+                                onClick={() => setShowGraphDisplay(false)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '20px',
+                                    cursor: 'pointer',
+                                    color: '#6b7280'
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <img
+                            src={graphUrl}
+                            alt="Generated Graph"
+                            style={{
+                                maxWidth: '80vw',
+                                maxHeight: '70vh',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                            }}
+                        />
+                        <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+                            <button
+                                onClick={() => {
+                                    const link = document.createElement('a');
+                                    link.href = graphUrl;
+                                    link.download = 'graph.png';
+                                    link.click();
+                                }}
+                                style={{
+                                    padding: '10px 20px',
+                                    backgroundColor: '#3b82f6',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                Download
+                            </button>
+                            <button
+                                onClick={() => setShowGraphDisplay(false)}
+                                style={{
+                                    padding: '10px 20px',
+                                    backgroundColor: '#f3f4f6',
+                                    color: '#4b5563',
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                Close
+                            </button>
                         </div>
                     </div>
                 </div>

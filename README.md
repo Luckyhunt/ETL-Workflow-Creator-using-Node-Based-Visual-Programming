@@ -16,7 +16,7 @@ A visual, node-based ETL (Extract, Transform, Load) workflow builder that allows
 - **Interactive node configuration** with intuitive parameter settings
 
 ### Data Processing Capabilities
-- **File Input Support**: CSV, JSON, XML formats
+- **File Input/Output Support**: CSV, JSON, XML formats with export options
 - **Data Transformations**:
   - Filter (with conditions like >, <, ==, etc.)
   - Drop/Rename Columns
@@ -206,7 +206,7 @@ Navigate to `http://localhost:5173` to use the application.
 | **Sort** | Ascending, Descending |
 | **Group By** | Aggregate functions (sum, mean, count, etc.) |
 | **Text** | Uppercase, Lowercase, Trim whitespace, Remove special chars |
-| **Type Cast** | Convert to numeric, Convert to string, Round numbers |
+| **Type Cast** | Convert to numeric, Convert to string, **Round numbers (with decimal places)**, **Format numbers (with decimal places)** |
 | **Extract** | Extract numbers, Extract strings |
 
 ### Graph Types

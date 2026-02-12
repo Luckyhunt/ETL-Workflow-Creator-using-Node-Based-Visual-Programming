@@ -210,13 +210,20 @@ def apply_single_transform():
             # For ROUND_NUMBERS, round numeric column
             df = processor.dataframes['temp_input'].copy()
             column_name = params.get('columnName')
+            decimal_places = params.get('targetValue') or params.get('decimalPlaces') or 0
             
-            print(f"ROUND_NUMBERS: column={column_name}")  # Debug log
+            # Convert to int if it's a string
+            try:
+                decimal_places = int(decimal_places)
+            except (ValueError, TypeError):
+                decimal_places = 0
+            
+            print(f"ROUND_NUMBERS: column={column_name}, decimal_places={decimal_places}")  # Debug log
             
             if column_name and column_name in df.columns:
                 # Convert to numeric first (in case values are strings)
                 df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
-                df[column_name] = df[column_name].round()
+                df[column_name] = df[column_name].round(decimal_places)
             
             processor.dataframes['temp_result'] = df
             result_df = df
@@ -224,13 +231,20 @@ def apply_single_transform():
             # For FORMAT_NUMBERS, format numeric column
             df = processor.dataframes['temp_input'].copy()
             column_name = params.get('columnName')
+            decimal_places = params.get('targetValue') or params.get('decimalPlaces') or 2
             
-            print(f"FORMAT_NUMBERS: column={column_name}")  # Debug log
+            # Convert to int if it's a string
+            try:
+                decimal_places = int(decimal_places)
+            except (ValueError, TypeError):
+                decimal_places = 2
+            
+            print(f"FORMAT_NUMBERS: column={column_name}, decimal_places={decimal_places}")  # Debug log
             
             if column_name and column_name in df.columns:
                 # Convert to numeric first (in case values are strings)
                 df[column_name] = pd.to_numeric(df[column_name], errors='coerce')
-                df[column_name] = df[column_name].apply(lambda x: f"{x:,.2f}" if pd.notna(x) else "")
+                df[column_name] = df[column_name].apply(lambda x: f"{x:,.{decimal_places}f}" if pd.notna(x) else "")
             
             processor.dataframes['temp_result'] = df
             result_df = df
@@ -431,6 +445,87 @@ def generate_graph():
     
     except Exception as e:
         print(f"[GRAPH] Error: {str(e)}")  # Detailed error logging
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/export', methods=['POST'])
+def export_data():
+    """
+    Export processed data to CSV or XML format
+    Expected payload: { data: [...], format: 'csv'|'xml'|'json', filename: 'output' }
+    Returns: { success: true, content: string, mimeType: string, extension: string }
+    """
+    try:
+        data = request.json
+        export_data = data.get('data')
+        export_format = data.get('format', 'json').lower()
+        filename = data.get('filename', 'output')
+        
+        if not export_data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        # Convert to DataFrame for easier manipulation
+        df = pd.DataFrame(export_data)
+        
+        if export_format == 'csv':
+            # Generate CSV with proper formatting
+            # Use StringIO to capture CSV string
+            csv_buffer = io.StringIO()
+            df.to_csv(csv_buffer, index=False, encoding='utf-8')
+            content = csv_buffer.getvalue()
+            
+            return jsonify({
+                'success': True,
+                'content': content,
+                'mimeType': 'text/csv;charset=utf-8;',
+                'extension': 'csv',
+                'filename': f"{filename}.csv"
+            })
+            
+        elif export_format == 'xml':
+            # Generate XML with proper formatting
+            xml_lines = ['<?xml version="1.0" encoding="UTF-8"?>']
+            xml_lines.append('<data>')
+            
+            for _, row in df.iterrows():
+                xml_lines.append('  <row>')
+                for col in df.columns:
+                    # Clean column name for XML tag (remove spaces, special chars)
+                    clean_col = str(col).replace(' ', '_').replace('-', '_').replace('(', '').replace(')', '').replace('/', '_')
+                    # Escape XML special characters in values
+                    value = str(row[col]) if pd.notna(row[col]) else ''
+                    value = value.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&apos;')
+                    xml_lines.append(f'    <{clean_col}>{value}</{clean_col}>')
+                xml_lines.append('  </row>')
+            
+            xml_lines.append('</data>')
+            content = '\n'.join(xml_lines)
+            
+            return jsonify({
+                'success': True,
+                'content': content,
+                'mimeType': 'application/xml;charset=utf-8;',
+                'extension': 'xml',
+                'filename': f"{filename}.xml"
+            })
+            
+        elif export_format == 'json':
+            # Return JSON formatted
+            content = json.dumps(export_data, indent=2, ensure_ascii=False)
+            
+            return jsonify({
+                'success': True,
+                'content': content,
+                'mimeType': 'application/json;charset=utf-8;',
+                'extension': 'json',
+                'filename': f"{filename}.json"
+            })
+            
+        else:
+            return jsonify({'success': False, 'error': f'Unsupported format: {export_format}'}), 400
+            
+    except Exception as e:
+        print(f"Export error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

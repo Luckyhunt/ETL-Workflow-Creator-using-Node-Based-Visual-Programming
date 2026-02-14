@@ -6,7 +6,7 @@ class WorkflowExecutionService {
    */
   async executeWorkflow(workflow: Workflow): Promise<any> {
     try {
-      const response = await fetch('http://localhost:5000/api/workflow/execute', {
+      const response = await fetch('https://etl-workflow-creator-using-node-based.onrender.com/api/workflow/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,7 +48,7 @@ class WorkflowExecutionService {
    */
   async applyTransformation(inputData: any[], transformType: string, params: any): Promise<any> {
     try {
-      const response = await fetch('http://localhost:5000/api/workflow/transform', {
+      const response = await fetch('https://etl-workflow-creator-using-node-based.onrender.com/api/workflow/transform', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ class WorkflowExecutionService {
    */
   async generateGraph(data: any[], graphType: string, xCol: string, yCol?: string, title?: string): Promise<any> {
     try {
-      const response = await fetch('http://localhost:5000/api/graph/generate', {
+      const response = await fetch('https://etl-workflow-creator-using-node-based.onrender.com/api/graph/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

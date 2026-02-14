@@ -5,7 +5,7 @@ import "./OutputNode.css"
 
 type DownloadFormat = 'json' | 'csv' | 'xml';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://etl-workflow-creator-using-node-based.onrender.com';
 
 const OutputNode: FC<NodeProps> = ({ node }) => {
     // Use props to satisfy linter

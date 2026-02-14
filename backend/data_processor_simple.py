@@ -609,9 +609,8 @@ class SimpleDataProcessor:
             
             # Convert columns to numeric where possible for plotting
             df = df.copy()
-            for col in df.columns:
-                if col in [x_col, y_col]:  # Only convert the columns we're plotting
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
+            if y_col:  # Only convert y_col to numeric (x_col is categorical, y_col is values)
+                df[y_col] = pd.to_numeric(df[y_col], errors='coerce')
             
             # Create figure with light background
             fig, ax = plt.subplots(figsize=(10, 6))

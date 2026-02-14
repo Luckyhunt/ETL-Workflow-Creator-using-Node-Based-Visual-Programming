@@ -243,6 +243,7 @@ const Sidebar = () => {
                         )}
                         <li className="management-item">
                             <button onClick={() => {
+                                console.log(workflow)
                                 // Get data from LAST output node in the chain
                                 const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
                                 const lastOutputNode = outputNodes[outputNodes.length - 1];
@@ -269,6 +270,8 @@ const Sidebar = () => {
                                     setSelectedOutputNode(availableOutputs[0]._id);
                                 }
                                 setShowGraphModal(true);
+
+
                             }}>
                                 <span className="icon"><MdBarChart /></span> Show Graph
                             </button>

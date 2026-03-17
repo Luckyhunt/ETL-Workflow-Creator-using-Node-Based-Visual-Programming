@@ -6,6 +6,8 @@ class WorkflowExecutionService {
    */
   async executeWorkflow(workflow: Workflow): Promise<any> {
     try {
+      console.log("Sending Workflow to Backend:", JSON.stringify(workflow, null, 2));
+      
       const response = await fetch('https://etl-workflow-creator-using-node-based.onrender.com/api/workflow/execute', {
         method: 'POST',
         headers: {
@@ -15,27 +17,27 @@ class WorkflowExecutionService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        // Safe error handling
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { error: errorText || `HTTP error! status: ${response.status}` };
+        }
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
+      // STEP 2 & 3: Safe JSON Parsing
+      const data = await response.json();
+      console.log("Response type:", typeof data);
+      console.log("Response:", data);
+
+      const safeData = typeof data === "string" ? JSON.parse(data) : data;
       
-      // Update output nodes with preview data if available
-      if (result.success && result.results) {
-        for (const nodeId in result.results) {
-          const nodeResult = result.results[nodeId];
-          if (nodeResult.data) {
-            // Update the node data with the processed result for preview
-            // This would typically involve updating the workflow state
-            // For now, we'll just return the result with preview data
-          }
-        }
-      }
-      
-      return result;
+      return safeData;
     } catch (error) {
-      console.error('Error executing workflow:', error);
+      console.error('Execution error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -48,27 +50,40 @@ class WorkflowExecutionService {
    */
   async applyTransformation(inputData: any[], transformType: string, params: any): Promise<any> {
     try {
+      const payload = {
+        input_data: inputData,
+        transform_type: transformType,
+        params: params
+      };
+      console.log("Sending Transformation:", payload);
+
       const response = await fetch('https://etl-workflow-creator-using-node-based.onrender.com/api/workflow/transform', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          input_data: inputData,
-          transform_type: transformType,
-          params: params
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { error: errorText || `HTTP error! status: ${response.status}` };
+        }
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
-      return result;
+      const data = await response.json();
+      console.log("Response type:", typeof data);
+      console.log("Response:", data);
+
+      const safeData = typeof data === "string" ? JSON.parse(data) : data;
+      return safeData;
     } catch (error) {
-      console.error('Error applying transformation:', error);
+      console.error('Transformation error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -81,29 +96,42 @@ class WorkflowExecutionService {
    */
   async generateGraph(data: any[], graphType: string, xCol: string, yCol?: string, title?: string): Promise<any> {
     try {
+      const payload = {
+        data: data,
+        graph_type: graphType,
+        x_col: xCol,
+        y_col: yCol,
+        title: title || 'Generated Chart'
+      };
+      console.log("Sending Graph Request:", payload);
+
       const response = await fetch('https://etl-workflow-creator-using-node-based.onrender.com/api/graph/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          data: data,
-          graph_type: graphType,
-          x_col: xCol,
-          y_col: yCol,
-          title: title || 'Generated Chart'
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { error: errorText || `HTTP error! status: ${response.status}` };
+        }
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
-      return result;
+      const dataJson = await response.json();
+      console.log("Response type:", typeof dataJson);
+      console.log("Response:", dataJson);
+
+      const safeData = typeof dataJson === "string" ? JSON.parse(dataJson) : dataJson;
+      return safeData;
     } catch (error) {
-      console.error('Error generating graph:', error);
+      console.error('Graph error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)

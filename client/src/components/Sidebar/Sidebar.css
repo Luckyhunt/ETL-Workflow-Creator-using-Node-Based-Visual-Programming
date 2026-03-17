@@ -1,21 +1,15 @@
 .sidebar {
-
     width: 250px;
-
     height: 100vh;
-
     position: fixed;
-
-    z-index: 10;
-
+    z-index: 100;
     left: 0;
-
-    background: var(--color-bg-2);
-
-    border-right: 1px solid var(--color-border-grey);
-
-    transition: 0.3s;
-
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-right: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 
@@ -105,67 +99,50 @@
 
 
 .sidebar-part-node-item button {
-
-    background: none;
-
-    border: none;
-
-    outline: none;
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 15px;
-
-    font-family: "Plus Jakarta Sans", sans-serif;
-
-    font-size: 0.9rem;
-
-    font-weight: 600;
-
-    width: 200px;
-
-    color: var(--color-text-dark);
-
-    border-radius: 10px;
-
-    transition: 0.3s;
-
+    background: white;
     border: 1px solid var(--color-border-grey);
-
+    outline: none;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    width: 100%;
+    color: var(--color-text-dark);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    overflow: hidden;
+    padding: 0;
 }
 
-
-
 .sidebar-part-node-item button:hover {
-
-    background: var(--color-bg-3);
-
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-accent-1);
+    background: var(--color-bg-1);
 }
 
 
 
 .sidebar-part-node-item button .icon {
-
     color: var(--color-accent-1);
-
-    font-size: 1.3rem;
-
-    /* background: var(--color-accent-2); */
-
-    border-radius: 10px 0 0 10px;
-
-    border: 2px solid var(--color-accent-1);
-
-    width: 45px;
-
-    height: 45px;
-
+    font-size: 1.2rem;
+    border-radius: 11px 0 0 11px;
+    background: var(--color-bg-2);
+    border-right: 1px solid var(--color-border-grey);
+    width: 48px;
+    height: 48px;
     display: grid;
-
     place-items: center;
+    transition: all 0.2s;
+}
 
+.sidebar-part-node-item button:hover .icon {
+    background: var(--color-accent-1-light);
+    color: var(--color-accent-1);
+    border-color: var(--color-accent-1);
 }
 
 
@@ -183,49 +160,31 @@
 
 
 .execute-workflow-btn {
-
     width: 100%;
-
     padding: 12px;
-
-    background-color: var(--color-accent-1);
-
+    background: linear-gradient(135deg, var(--color-accent-1), var(--color-accent-2));
     color: white;
-
     border: none;
-
-    border-radius: 4px;
-
+    border-radius: 12px;
     font-size: 14px;
-
-    font-weight: bold;
-
+    font-weight: 600;
     cursor: pointer;
-
     display: flex;
-
     align-items: center;
-
+    justify-content: center;
     gap: 8px;
-
-    transition: background-color 0.3s;
-
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(82, 69, 229, 0.3);
 }
-
-
 
 .execute-workflow-btn:hover {
-
-    background-color: #0000FF;
-
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 20px rgba(82, 69, 229, 0.4);
+    filter: brightness(1.1);
 }
 
-
-
 .execute-workflow-btn:active {
-
-    transform: translateY(1px);
-
+    transform: translateY(0) scale(0.98);
 }
 
 

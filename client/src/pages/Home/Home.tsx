@@ -6,7 +6,7 @@ import AuthModal from "../../components/AuthModal/AuthModal"
 
 import Logo from "../../images/logo.svg"
 
-import { FaCheck } from "react-icons/fa6";
+import { FaCheck, FaArrowRight } from "react-icons/fa6";
 import { FaUserCircle } from "react-icons/fa";
 import { FaGear } from "react-icons/fa6";
 import { FaRobot } from "react-icons/fa";
@@ -51,8 +51,9 @@ const Home = () => {
                     Build complex ETL workflows, connect enterprise tools, and automate intelligent business logic with our intuitive drag-and-drop architect.
                 </p>
                 <div className="home-hero-btns">
-                    <button className="blue" onClick={() => setIsAuthModalOpen(true)} style={{ border: 'none', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold' }}>Get Started</button>
-                    <Link className="light" to="#">Watch Demo</Link>
+                    <button className="blue" onClick={() => setIsAuthModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none' }}>
+                        Get Started <FaArrowRight />
+                    </button>
                 </div>
             </div>
 

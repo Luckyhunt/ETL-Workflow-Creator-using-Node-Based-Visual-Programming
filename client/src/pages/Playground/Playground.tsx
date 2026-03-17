@@ -7,12 +7,15 @@ import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { workflowApi } from "../../services/workflowApi"
 import { useWorkflow } from "../../contexts/useWorkflow"
+import { useAuth } from "../../contexts/AuthContext"
 
 const Playground = () => {
   const [searchParams] = useSearchParams();
   const workflowId = searchParams.get('id');
-  const { setWorkflowState, deleteDraft } = useWorkflow();
+  const { workflow, setWorkflowState, setWorkflowName, deleteDraft } = useWorkflow();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(!!workflowId);
+  const [isOwner, setIsOwner] = useState(true);
 
   useEffect(() => {
     const loadWorkflow = async () => {
@@ -20,8 +23,10 @@ const Playground = () => {
         try {
           setIsLoading(true);
           const data = await workflowApi.getWorkflow(workflowId);
+          setIsOwner(!user || data.user_id === user.id);
           setWorkflowState({
             _id: data.id,
+            user_id: data.user_id,
             name: data.name,
             activeSourceNode: null,
             selectedNode: null,
@@ -58,8 +63,10 @@ return (
       {/* Sidebar */}
       <Sidebar />
 
-      {/* Canvas */}
-      <PlayCanvas />
+      {/* Canvas Area */}
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <PlayCanvas />
+      </div>
 
       {/* Previewer */}
       <Previewer />

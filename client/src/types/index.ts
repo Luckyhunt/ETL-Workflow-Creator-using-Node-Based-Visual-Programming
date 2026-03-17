@@ -81,6 +81,7 @@ export interface WorkflowDefinition {
 
 export interface Workflow {
     readonly _id: string
+    user_id?: string
     name: string
     selectedNode?: WorkflowNode | null
     activeSourceNode: WorkflowNode | null

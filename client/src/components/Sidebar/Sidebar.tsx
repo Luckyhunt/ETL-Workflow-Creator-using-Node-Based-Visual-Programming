@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { v4 as uuidv4 } from "uuid"
 import { useNavigate, Link } from "react-router-dom";
 import type { WorkflowNode } from "../../types"
@@ -9,7 +10,7 @@ import "./Sidebar.css"
 import { LuFileInput } from "react-icons/lu"
 import { IoSettingsOutline } from "react-icons/io5"
 import { HiLightningBolt } from "react-icons/hi";
-import { FaPlay } from "react-icons/fa";
+import { FaPlay, FaCheck, FaTimes } from "react-icons/fa";
 import { FaShareFromSquare } from "react-icons/fa6";
 import { MdSave } from "react-icons/md";
 import { MdBarChart } from "react-icons/md";
@@ -38,7 +39,59 @@ const Sidebar = () => {
     const [searchParams] = useSearchParams();
     const workflowId = searchParams.get('id');
     const { user } = useAuth();
-    const { workflow, addNode, deleteDraft, shareWorkflow, updateNode } = useWorkflow()
+    const { workflow, addNode, deleteDraft, shareWorkflow, updateNode, setWorkflowName } = useWorkflow()
+    
+    // PHASE 12: Ownership Check
+    const isOwner = !user || workflow.user_id === user.id;
+
+    // NEW Phase 12 renaming states
+    const [localName, setLocalName] = useState(workflow.name);
+    const [nameStatus, setNameStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [nameError, setNameError] = useState<string | null>(null);
+
+    // Sync local name when workflow state changes (e.g. on load)
+    useEffect(() => {
+        if (workflow.name !== localName && nameStatus === 'idle') {
+            setLocalName(workflow.name);
+        }
+    }, [workflow.name]);
+
+    // Debounced Auto-Save for Name
+    useEffect(() => {
+        if (!workflowId || localName === workflow.name || !user || !isOwner) return;
+        
+        const timer = setTimeout(async () => {
+            if (!localName.trim()) {
+                setNameError("Name cannot be empty");
+                setNameStatus('error');
+                return;
+            }
+
+            setNameStatus('saving');
+            setNameError(null);
+
+            try {
+                // Check uniqueness first
+                const isUnique = await workflowApi.checkNameUniqueness(localName, workflowId);
+                if (!isUnique) {
+                    setNameError("Name already exists");
+                    setNameStatus('error');
+                    return;
+                }
+
+                await workflowApi.updateWorkflow(workflowId, localName, workflow.definition.nodes, workflow.definition.edges);
+                setWorkflowName(localName);
+                setNameStatus('saved');
+                setTimeout(() => setNameStatus('idle'), 3000);
+            } catch (error) {
+                console.error("Failed to rename:", error);
+                setNameStatus('error');
+                setNameError("Failed to save name");
+            }
+        }, 1000);
+
+        return () => clearTimeout(timer);
+    }, [localName, workflowId, user]);
 
     const createNewInputNode = () => {
         const newInputNode: WorkflowNode = {
@@ -94,10 +147,42 @@ const Sidebar = () => {
     const executeWorkflow = async () => {
         try {
             setIsExecuting(true);
-            const result = await workflowExecutionService.executeWorkflow(workflow);
+            
+            // PHASE 13: Payload Sanitization & Edge Mapping (Frontend Fix for Backend Errors)
+            const replacer = (key: string, value: any) => {
+                if (key === 'processedData' || key === 'previewData') return undefined;
+                return value;
+            };
 
-            if (result.success) {
-                const results = result.results || {};
+            // Deep clone and sanitize
+            const sanitizedWorkflow = JSON.parse(JSON.stringify(workflow, replacer));
+
+            // CRITICAL FIX: Ensure source/target are objects for the backend
+            // The backend does edge['source']['_id'], so they MUST be objects.
+            const formattedEdges = workflow.definition.edges.map(edge => ({
+                ...edge,
+                source: typeof edge.source === 'string' ? { _id: edge.source } : { _id: edge.source._id },
+                target: typeof edge.target === 'string' ? { _id: edge.target } : { _id: edge.target._id }
+            }));
+
+            sanitizedWorkflow.definition.edges = formattedEdges;
+
+            // Debug Logging as requested
+            console.log("Sending:", { 
+                nodes: sanitizedWorkflow.definition.nodes, 
+                edges: sanitizedWorkflow.definition.edges 
+            });
+
+            const result = await workflowExecutionService.executeWorkflow(sanitizedWorkflow);
+
+            // Handle potential string response if service didn't parse it
+            const data = typeof result === 'string' ? JSON.parse(result) : result;
+            
+            console.log("Response type:", typeof data);
+            console.log("Response:", data);
+
+            if (data?.success) {
+                const results = data.results || {};
 
                 // Update each output node with its OWN execution result
                 const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
@@ -109,8 +194,8 @@ const Sidebar = () => {
                     const outputData = outputNode.data as { file: any };
                     const outputName = outputNodes.length > 1 ? `Output ${index + 1}` : 'Output';
 
-                    // Get the actual data - could be wrapped in .data property or direct
-                    const processedData = nodeResult.processedData || nodeResult.data || nodeResult;
+                    // Get the actual data - safely access properties
+                    const processedData = nodeResult?.processedData || nodeResult?.data || nodeResult;
 
                     updateNode(outputNode._id, {
                         file: {
@@ -122,12 +207,16 @@ const Sidebar = () => {
                     });
                 });
 
-                console.log("All output results:", results);
+                console.log("All execution results processed.");
+                alert("Execution completed successfully! ✅");
             } else {
-                console.error("Execution error:", result.error);
+                const errorMsg = data?.error ||  "Execution failed without a specific error message.";
+                console.error("Execution error:", errorMsg);
+                alert("❌ Execution Error: " + errorMsg);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error executing workflow:", error);
+            alert("⚠️ Error during execution: " + (error.message || "Unknown error"));
         } finally {
             setIsExecuting(false);
         }
@@ -214,7 +303,7 @@ const Sidebar = () => {
                 await workflowApi.updateWorkflow(workflowId, workflow.name || 'Updated Workflow', cleanNodes, cleanEdges);
                 console.log("Workflow saved successfully (Partial Update)!");
             } else {
-                const newWf = await workflowApi.createWorkflow(workflow.name || 'New Workflow', cleanNodes, cleanEdges);
+                const newWf = await workflowApi.createWorkflow(workflow.name, cleanNodes, cleanEdges);
                 navigate(`/playground?id=${newWf.id}`, { replace: true });
                 console.log("New workflow created and saved!");
             }
@@ -235,7 +324,13 @@ const Sidebar = () => {
     };
 
     return (
-        <div className={open ? "sidebar" : "sidebar close"}>
+        <>
+        <motion.div 
+            initial={false}
+            animate={{ width: open ? 250 : 0, x: open ? 0 : -250 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className={open ? "sidebar" : "sidebar close"}
+        >
             <div className="sidebar-btn">
                 <button className="toggle-btn" onClick={() => setOpen(!open)}>
                     {open ? "<<" : ">>"}
@@ -247,25 +342,113 @@ const Sidebar = () => {
                     <span className="sidebar-logo-name">NodeFlow</span>
                 </div>
             </Link>
+
+            {/* PHASE 12: Worklow Renaming Area */}
+            {open && user && workflowId && (
+                <div style={{ padding: '0 20px 20px 20px', borderBottom: '1px solid var(--color-border-grey)' }}>
+                    <div style={{ position: 'relative' }}>
+                        {isOwner ? (
+                            <input 
+                                value={localName}
+                                onChange={(e) => setLocalName(e.target.value)}
+                                onBlur={() => {
+                                    if (!localName.trim()) setLocalName(workflow.name);
+                                }}
+                                placeholder="Workflow Name"
+                                style={{
+                                    width: '100%',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    borderBottom: nameStatus === 'error' ? '1px solid #ef4444' : '1px solid transparent',
+                                    color: 'var(--color-text-dark)',
+                                    fontWeight: '600',
+                                    fontSize: '0.95rem',
+                                    padding: '4px 0',
+                                    outline: 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            />
+                        ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ 
+                                    color: 'var(--color-text-dark)', 
+                                    fontWeight: '600', 
+                                    fontSize: '0.95rem',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                }}>
+                                    {workflow.name}
+                                </span>
+                                <span style={{ 
+                                    fontSize: '0.65rem', 
+                                    padding: '1px 6px', 
+                                    background: '#e0e7ff', 
+                                    color: '#4338ca', 
+                                    borderRadius: '10px',
+                                    fontWeight: '700'
+                                }}>
+                                    SHARED
+                                </span>
+                            </div>
+                        )}
+                        
+                        {isOwner && (
+                            <div style={{ 
+                                position: 'absolute', 
+                                right: 0, 
+                                top: '50%', 
+                                transform: 'translateY(-50%)',
+                                fontSize: '0.75rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                            }}>
+                                {nameStatus === 'saving' && <span style={{ color: 'var(--color-text-grey)' }}>Saving...</span>}
+                                {nameStatus === 'saved' && <span style={{ color: '#10b981' }}><FaCheck /> Saved</span>}
+                                {nameStatus === 'error' && <span style={{ color: '#ef4444' }}><FaTimes /> Error</span>}
+                            </div>
+                        )}
+                    </div>
+                    {isOwner && nameError && (
+                        <div style={{ color: '#ef4444', fontSize: '0.7rem', marginTop: '4px' }}>
+                            {nameError}
+                        </div>
+                    )}
+                </div>
+            )}
+
             <div className="sidebar-contents">
                 <div className="sidebar-part">
                     <div className="sidebar-part-title">Editor Nodes</div>
                     <ul className="sidebar-part-nodes">
-                        <li className="sidebar-part-node-item">
+                        <motion.li 
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="sidebar-part-node-item"
+                        >
                             <button onClick={createNewInputNode}>
                                 <span className="icon"><LuFileInput /></span> File Input Node
                             </button>
-                        </li>
-                        <li className="sidebar-part-node-item">
+                        </motion.li>
+                        <motion.li 
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="sidebar-part-node-item"
+                        >
                             <button onClick={createNewTransformNode}>
                                 <span className="icon"><IoSettingsOutline /></span> Transformation
                             </button>
-                        </li>
-                        <li className="sidebar-part-node-item">
+                        </motion.li>
+                        <motion.li 
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="sidebar-part-node-item"
+                        >
                             <button onClick={createNewOutputNode}>
                                 <span className="icon"><HiLightningBolt /></span> Result
                             </button>
-                        </li>
+                        </motion.li>
                     </ul>
                 </div>
                 <div className="sidebar-part">
@@ -354,366 +537,370 @@ const Sidebar = () => {
                 </div>
             </div>
 
-            {/* Graph Configuration Modal */}
-            {showGraphModal && (
+        </motion.div>
+        
+        {/* PHASE 14: Minimal Stacking Fix - Moved outside motion.div */}
+        {/* Graph Configuration Modal */}
+        {showGraphModal && (
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.4)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 1000
+            }}>
                 <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.4)',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    zIndex: 1000
+                    backgroundColor: '#ffffff',
+                    padding: '0',
+                    borderRadius: '12px',
+                    minWidth: '350px',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+                    overflow: 'hidden'
                 }}>
                     <div style={{
-                        backgroundColor: '#ffffff',
-                        padding: '0',
-                        borderRadius: '12px',
-                        minWidth: '350px',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-                        overflow: 'hidden'
-                    }}>
-                        <div style={{
-                            backgroundColor: '#f8fafc',
-                            padding: '20px',
-                            borderBottom: '1px solid #e5e7eb'
-                        }}>
-                            <h3 style={{
-                                margin: 0,
-                                color: '#1f2937',
-                                fontSize: '18px',
-                                fontWeight: '600'
-                            }}>Graph Configuration</h3>
-                        </div>
-
-                        <div style={{ padding: '20px' }}>
-                            <div style={{ marginBottom: '15px' }}>
-                                <label style={{
-                                    color: '#6b7280',
-                                    fontSize: '12px',
-                                    textTransform: 'uppercase',
-                                    fontWeight: '600',
-                                    letterSpacing: '0.5px'
-                                }}>Output Node</label>
-                                <select
-                                    value={selectedOutputNode}
-                                    onChange={(e) => {
-                                        setSelectedOutputNode(e.target.value)
-                                        // Update available columns based on selected output
-                                        const selectedNode = workflow.definition.nodes.find(n => n._id === e.target.value)
-                                        const data = (selectedNode?.data as any)?.file?.processedData || []
-                                        if (data.length > 0) {
-                                            const cols = Object.keys(data[0] || {})
-                                            setAvailableColumns(cols)
-                                            if (cols.length > 0) {
-                                                setXColumn(cols[0])
-                                                if (cols.length > 1) setYColumn(cols[1])
-                                            }
-                                        }
-                                    }}
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        marginTop: '6px',
-                                        backgroundColor: '#ffffff',
-                                        color: '#1f2937',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        fontSize: '14px'
-                                    }}
-                                >
-                                    {workflow.definition.nodes.filter(n => n.type === 'output').map((node, index) => (
-                                        <option key={node._id} value={node._id}>
-                                            {node.name || `Output ${index + 1}`}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div style={{ marginBottom: '15px' }}>
-                                <label style={{
-                                    color: '#6b7280',
-                                    fontSize: '12px',
-                                    textTransform: 'uppercase',
-                                    fontWeight: '600',
-                                    letterSpacing: '0.5px'
-                                }}>Graph Type</label>
-                                <select
-                                    value={graphType}
-                                    onChange={(e) => setGraphType(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        marginTop: '6px',
-                                        backgroundColor: '#ffffff',
-                                        color: '#1f2937',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        fontSize: '14px'
-                                    }}
-                                >
-                                    <option value="bar">Bar Chart</option>
-                                    <option value="line">Line Chart</option>
-                                    <option value="scatter">Scatter Plot</option>
-                                    <option value="pie">Pie Chart</option>
-                                    <option value="hist">Histogram</option>
-                                </select>
-                            </div>
-
-                            <div style={{ marginBottom: '15px' }}>
-                                <label style={{
-                                    color: '#6b7280',
-                                    fontSize: '12px',
-                                    textTransform: 'uppercase',
-                                    fontWeight: '600',
-                                    letterSpacing: '0.5px'
-                                }}>X Axis (Category)</label>
-                                <select
-                                    value={xColumn}
-                                    onChange={(e) => setXColumn(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        marginTop: '6px',
-                                        backgroundColor: '#ffffff',
-                                        color: '#1f2937',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        fontSize: '14px'
-                                    }}
-                                >
-                                    {availableColumns.map(col => (
-                                        <option key={col} value={col}>{col}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{
-                                    color: '#6b7280',
-                                    fontSize: '12px',
-                                    textTransform: 'uppercase',
-                                    fontWeight: '600',
-                                    letterSpacing: '0.5px'
-                                }}>Y Axis (Value)</label>
-                                <select
-                                    value={yColumn}
-                                    onChange={(e) => setYColumn(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        marginTop: '6px',
-                                        backgroundColor: '#ffffff',
-                                        color: '#1f2937',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        fontSize: '14px'
-                                    }}
-                                >
-                                    <option value="">None (Count)</option>
-                                    {availableColumns.map(col => (
-                                        <option key={col} value={col}>{col}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '12px' }}>
-                                <button
-                                    onClick={async () => {
-                                        const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
-                                        const outputNode = outputNodes.find(n => n._id === selectedOutputNode) || outputNodes[0];
-
-                                        let processedData = (outputNode?.data as any)?.file?.processedData || [];
-
-                                        console.log('[GRAPH] Raw processedData:', processedData);
-                                        console.log('[GRAPH] Type:', typeof processedData, 'Is Array:', Array.isArray(processedData));
-
-                                        // Flatten if data is nested (array of arrays)
-                                        if (Array.isArray(processedData) && processedData.length > 0 && Array.isArray(processedData[0])) {
-                                            processedData = processedData.flat();
-                                            console.log('[GRAPH] Flattened data:', processedData);
-                                        }
-
-                                        // If data is an object with data property, extract it
-                                        if (!Array.isArray(processedData) && processedData.data && Array.isArray(processedData.data)) {
-                                            processedData = processedData.data;
-                                            console.log('[GRAPH] Extracted data from object:', processedData);
-                                        }
-
-                                        if (!processedData || processedData.length === 0) {
-                                            alert('No data available. Please execute the workflow first.');
-                                            return;
-                                        }
-
-                                        // Check first row structure
-                                        console.log('[GRAPH] First row:', processedData[0]);
-                                        console.log('[GRAPH] Columns:', Object.keys(processedData[0] || {}));
-
-                                        if (!xColumn) {
-                                            alert('Please select an X-axis column.');
-                                            return;
-                                        }
-
-                                        try {
-                                            const result = await workflowExecutionService.generateGraph(
-                                                processedData,
-                                                graphType,
-                                                xColumn,
-                                                yColumn || undefined,
-                                                `${yColumn || 'Count'} by ${xColumn}`
-                                            );
-
-                                            if (result.success && result.graph_url) {
-                                                setGraphUrl(result.graph_url);
-                                                setShowGraphDisplay(true);
-                                                setShowGraphModal(false);
-                                            } else {
-                                                console.error('[GRAPH] Backend error:', result);
-                                                alert('Failed to generate graph: ' + (result.error || JSON.stringify(result) || 'Unknown error'));
-                                            }
-                                        } catch (error) {
-                                            console.error('Error generating graph:', error);
-                                            alert('Error generating graph. Check backend.');
-                                        }
-                                    }}
-                                    style={{
-                                        flex: 1,
-                                        padding: '12px',
-                                        backgroundColor: '#3b82f6',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Generate Graph
-                                </button>
-                                <button
-                                    onClick={() => setShowGraphModal(false)}
-                                    style={{
-                                        flex: 1,
-                                        padding: '12px',
-                                        backgroundColor: '#f3f4f6',
-                                        color: '#4b5563',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Graph Display Section */}
-            {showGraphDisplay && graphUrl && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.6)',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    zIndex: 1001
-                }}>
-                    <div style={{
-                        backgroundColor: '#ffffff',
+                        backgroundColor: '#f8fafc',
                         padding: '20px',
-                        borderRadius: '12px',
-                        maxWidth: '90vw',
-                        maxHeight: '90vh',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center'
+                        borderBottom: '1px solid #e5e7eb'
                     }}>
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            width: '100%',
-                            marginBottom: '15px'
-                        }}>
-                            <h3 style={{ margin: 0, color: '#1f2937' }}>Generated Graph</h3>
-                            <button
-                                onClick={() => setShowGraphDisplay(false)}
+                        <h3 style={{
+                            margin: 0,
+                            color: '#1f2937',
+                            fontSize: '18px',
+                            fontWeight: '600'
+                        }}>Graph Configuration</h3>
+                    </div>
+
+                    <div style={{ padding: '20px' }}>
+                        <div style={{ marginBottom: '15px' }}>
+                            <label style={{
+                                color: '#6b7280',
+                                fontSize: '12px',
+                                textTransform: 'uppercase',
+                                fontWeight: '600',
+                                letterSpacing: '0.5px'
+                            }}>Output Node</label>
+                            <select
+                                value={selectedOutputNode}
+                                onChange={(e) => {
+                                    setSelectedOutputNode(e.target.value)
+                                    // Update available columns based on selected output
+                                    const selectedNode = workflow.definition.nodes.find(n => n._id === e.target.value)
+                                    const data = (selectedNode?.data as any)?.file?.processedData || []
+                                    if (data.length > 0) {
+                                        const cols = Object.keys(data[0] || {})
+                                        setAvailableColumns(cols)
+                                        if (cols.length > 0) {
+                                            setXColumn(cols[0])
+                                            if (cols.length > 1) setYColumn(cols[1])
+                                        }
+                                    }
+                                }}
                                 style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    fontSize: '20px',
-                                    cursor: 'pointer',
-                                    color: '#6b7280'
+                                    width: '100%',
+                                    padding: '10px',
+                                    marginTop: '6px',
+                                    backgroundColor: '#ffffff',
+                                    color: '#1f2937',
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '6px',
+                                    fontSize: '14px'
                                 }}
                             >
-                                ✕
-                            </button>
+                                {workflow.definition.nodes.filter(n => n.type === 'output').map((node, index) => (
+                                    <option key={node._id} value={node._id}>
+                                        {node.name || `Output ${index + 1}`}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
-                        <img
-                            src={graphUrl}
-                            alt="Generated Graph"
-                            style={{
-                                maxWidth: '80vw',
-                                maxHeight: '70vh',
-                                borderRadius: '8px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                            }}
-                        />
-                        <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+
+                        <div style={{ marginBottom: '15px' }}>
+                            <label style={{
+                                color: '#6b7280',
+                                fontSize: '12px',
+                                textTransform: 'uppercase',
+                                fontWeight: '600',
+                                letterSpacing: '0.5px'
+                            }}>Graph Type</label>
+                            <select
+                                value={graphType}
+                                onChange={(e) => setGraphType(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px',
+                                    marginTop: '6px',
+                                    backgroundColor: '#ffffff',
+                                    color: '#1f2937',
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '6px',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                <option value="bar">Bar Chart</option>
+                                <option value="line">Line Chart</option>
+                                <option value="scatter">Scatter Plot</option>
+                                <option value="pie">Pie Chart</option>
+                                <option value="hist">Histogram</option>
+                            </select>
+                        </div>
+
+                        <div style={{ marginBottom: '15px' }}>
+                            <label style={{
+                                color: '#6b7280',
+                                fontSize: '12px',
+                                textTransform: 'uppercase',
+                                fontWeight: '600',
+                                letterSpacing: '0.5px'
+                            }}>X Axis (Category)</label>
+                            <select
+                                value={xColumn}
+                                onChange={(e) => setXColumn(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px',
+                                    marginTop: '6px',
+                                    backgroundColor: '#ffffff',
+                                    color: '#1f2937',
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '6px',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                {availableColumns.map(col => (
+                                    <option key={col} value={col}>{col}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{
+                                color: '#6b7280',
+                                fontSize: '12px',
+                                textTransform: 'uppercase',
+                                fontWeight: '600',
+                                letterSpacing: '0.5px'
+                            }}>Y Axis (Value)</label>
+                            <select
+                                value={yColumn}
+                                onChange={(e) => setYColumn(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px',
+                                    marginTop: '6px',
+                                    backgroundColor: '#ffffff',
+                                    color: '#1f2937',
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '6px',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                <option value="">None (Count)</option>
+                                {availableColumns.map(col => (
+                                    <option key={col} value={col}>{col}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px' }}>
                             <button
-                                onClick={() => {
-                                    const link = document.createElement('a');
-                                    link.href = graphUrl;
-                                    link.download = 'graph.png';
-                                    link.click();
+                                onClick={async () => {
+                                    const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
+                                    const outputNode = outputNodes.find(n => n._id === selectedOutputNode) || outputNodes[0];
+
+                                    let processedData = (outputNode?.data as any)?.file?.processedData || [];
+
+                                    console.log('[GRAPH] Raw processedData:', processedData);
+                                    console.log('[GRAPH] Type:', typeof processedData, 'Is Array:', Array.isArray(processedData));
+
+                                    // Flatten if data is nested (array of arrays)
+                                    if (Array.isArray(processedData) && processedData.length > 0 && Array.isArray(processedData[0])) {
+                                        processedData = processedData.flat();
+                                        console.log('[GRAPH] Flattened data:', processedData);
+                                    }
+
+                                    // If data is an object with data property, extract it
+                                    if (!Array.isArray(processedData) && processedData.data && Array.isArray(processedData.data)) {
+                                        processedData = processedData.data;
+                                        console.log('[GRAPH] Extracted data from object:', processedData);
+                                    }
+
+                                    if (!processedData || processedData.length === 0) {
+                                        alert('No data available. Please execute the workflow first.');
+                                        return;
+                                    }
+
+                                    // Check first row structure
+                                    console.log('[GRAPH] First row:', processedData[0]);
+                                    console.log('[GRAPH] Columns:', Object.keys(processedData[0] || {}));
+
+                                    if (!xColumn) {
+                                        alert('Please select an X-axis column.');
+                                        return;
+                                    }
+
+                                    try {
+                                        const result = await workflowExecutionService.generateGraph(
+                                            processedData,
+                                            graphType,
+                                            xColumn,
+                                            yColumn || undefined,
+                                            `${yColumn || 'Count'} by ${xColumn}`
+                                        );
+
+                                        if (result.success && result.graph_url) {
+                                            setGraphUrl(result.graph_url);
+                                            setShowGraphDisplay(true);
+                                            setShowGraphModal(false);
+                                        } else {
+                                            console.error('[GRAPH] Backend error:', result);
+                                            alert('Failed to generate graph: ' + (result.error || JSON.stringify(result) || 'Unknown error'));
+                                        }
+                                    } catch (error) {
+                                        console.error('Error generating graph:', error);
+                                        alert('Error generating graph. Check backend.');
+                                    }
                                 }}
                                 style={{
-                                    padding: '10px 20px',
+                                    flex: 1,
+                                    padding: '12px',
                                     backgroundColor: '#3b82f6',
                                     color: 'white',
                                     border: 'none',
                                     borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    fontSize: '14px'
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
                                 }}
                             >
-                                Download
+                                Generate Graph
                             </button>
                             <button
-                                onClick={() => setShowGraphDisplay(false)}
+                                onClick={() => setShowGraphModal(false)}
                                 style={{
-                                    padding: '10px 20px',
+                                    flex: 1,
+                                    padding: '12px',
                                     backgroundColor: '#f3f4f6',
                                     color: '#4b5563',
                                     border: '1px solid #d1d5db',
                                     borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    fontSize: '14px'
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
                                 }}
                             >
-                                Close
+                                Cancel
                             </button>
                         </div>
                     </div>
                 </div>
-            )}
-            
-            {showShareModal && workflowId && (
-                <ShareModal workflowId={workflowId} onClose={() => setShowShareModal(false)} />
-            )}
-        </div>
+            </div>
+        )}
+
+        {/* Graph Display Section */}
+        {showGraphDisplay && graphUrl && (
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.6)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 1001
+            }}>
+                <div style={{
+                    backgroundColor: '#ffffff',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    maxWidth: '90vw',
+                    maxHeight: '90vh',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center'
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        width: '100%',
+                        marginBottom: '15px'
+                    }}>
+                        <h3 style={{ margin: 0, color: '#1f2937' }}>Generated Graph</h3>
+                        <button
+                            onClick={() => setShowGraphDisplay(false)}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                fontSize: '20px',
+                                cursor: 'pointer',
+                                color: '#6b7280'
+                            }}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <img
+                        src={graphUrl}
+                        alt="Generated Graph"
+                        style={{
+                            maxWidth: '80vw',
+                            maxHeight: '70vh',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}
+                    />
+                    <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+                        <button
+                            onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = graphUrl;
+                                link.download = 'graph.png';
+                                link.click();
+                            }}
+                            style={{
+                                padding: '10px 20px',
+                                backgroundColor: '#3b82f6',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
+                            Download
+                        </button>
+                        <button
+                            onClick={() => setShowGraphDisplay(false)}
+                            style={{
+                                padding: '10px 20px',
+                                backgroundColor: '#f3f4f6',
+                                color: '#4b5563',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+        
+        {/* PHASE 13: Move ShareModal out of motion.div to fix z-index/transform issues */}
+        {showShareModal && workflowId && (
+            <ShareModal workflowId={workflowId} onClose={() => setShowShareModal(false)} />
+        )}
+        </>
     )
 }
 

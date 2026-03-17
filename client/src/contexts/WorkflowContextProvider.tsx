@@ -6,6 +6,7 @@ import type { Workflow, WorkflowNode, WorkflowEdge, Position } from '../types';
 export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [workflow, setWorkflow] = useState<Workflow>({
         _id: '',
+        user_id: '',
         name: '',
         activeSourceNode: null,
         selectedNode: null,
@@ -110,6 +111,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // Reset workflow to initial empty state
         setWorkflow({
             _id: '',
+            user_id: '',
             name: '',
             activeSourceNode: null,
             selectedNode: null,
@@ -143,6 +145,13 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setWorkflow(newWorkflowState);
     };
 
+    const setWorkflowName = (name: string) => {
+        setWorkflow((prev) => ({
+            ...prev,
+            name
+        }));
+    };
+
     return (
         <WorkflowContext.Provider value={{
             workflow,
@@ -156,7 +165,8 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             setSelectedNode,
             deleteDraft,
             shareWorkflow,
-            setWorkflowState
+            setWorkflowState,
+            setWorkflowName
         }}>
             {children}
         </WorkflowContext.Provider>

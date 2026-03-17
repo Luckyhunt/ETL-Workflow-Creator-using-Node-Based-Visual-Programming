@@ -9,17 +9,18 @@ import { workflowApi } from "../../services/workflowApi"
 import { useWorkflow } from "../../contexts/useWorkflow"
 import { useAuth } from "../../contexts/AuthContext"
 
-const Playground = () => {
+const Playground = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
   const [searchParams] = useSearchParams();
   const workflowId = searchParams.get('id');
   const { workflow, setWorkflowState, setWorkflowName, deleteDraft } = useWorkflow();
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(!!workflowId);
-  const [isOwner, setIsOwner] = useState(true);
+  const [isLoading, setIsLoading] = useState(mode === 'private' && !!workflowId);
+  const [isOwner, setIsOwner] = useState(mode === 'private');
 
   useEffect(() => {
     const loadWorkflow = async () => {
-      if (workflowId) {
+      // ONLY load from backend if in private mode and we have an ID
+      if (mode === 'private' && workflowId) {
         try {
           setIsLoading(true);
           const data = await workflowApi.getWorkflow(workflowId);
@@ -41,17 +42,19 @@ const Playground = () => {
         } finally {
           setIsLoading(false);
         }
-      } else {
-        // Only delete draft if we actually just arrived on a blank page from somewhere else
-        // (prevents deleting right after saving a new workflow)
+      } else if (mode === 'private') {
+        // Only delete draft in private mode when starting fresh
         deleteDraft();
+        setIsLoading(false);
+      } else {
+        // Public mode: do nothing, keep existing in-memory state or blank
         setIsLoading(false);
       }
     };
 
     loadWorkflow();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workflowId]);
+  }, [workflowId, mode]);
 
   if (isLoading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--color-text-grey)' }}>Loading Workflow...</div>;
@@ -61,11 +64,47 @@ return (
   <div className='playground'>
     <div className="playground-container">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar mode={mode} />
 
       {/* Canvas Area */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <PlayCanvas />
+      {/* Canvas Area with Phase 17: Playground Mode Banner */}
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {mode === 'public' && (
+          <div style={{
+            background: 'linear-gradient(90deg, var(--color-accent-1), var(--color-accent-2))',
+            color: 'white',
+            padding: '10px 20px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '15px',
+            fontSize: '0.9rem',
+            fontWeight: '600',
+            zIndex: 10,
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+          }}>
+            <span>⚡ Playground Mode — Changes won't be saved.</span>
+            <button 
+              onClick={() => window.location.href = '/'}
+              style={{
+                background: 'rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.4)',
+                color: 'white',
+                padding: '4px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                fontWeight: '700',
+                transition: 'all 0.2s'
+              }}
+            >
+                Login to Save
+            </button>
+          </div>
+        )}
+        <div style={{ flex: 1, position: 'relative' }}>
+          <PlayCanvas />
+        </div>
       </div>
 
       {/* Previewer */}

@@ -15,12 +15,26 @@ const router = createBrowserRouter([
     element: <Home />
   },
   {
+    path: '/editor',
+    element: <Playground mode="public" />
+  },
+  {
+    path: '/editor/:id',
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: '',
+        element: <Playground mode="private" />
+      }
+    ]
+  },
+  {
     path: '/playground',
     element: <ProtectedRoute />,
     children: [
       {
         path: '',
-        element: <Playground />
+        element: <Playground mode="private" />
       }
     ]
   },

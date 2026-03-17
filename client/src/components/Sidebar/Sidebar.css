@@ -9,7 +9,7 @@
     -webkit-backdrop-filter: var(--glass-blur);
     border-right: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
-    transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 
@@ -34,7 +34,57 @@
 
     position: absolute;
 
-    right: -40px;
+    right: -42px; /* Slightly more out-of-bounds as requested */
+
+    top: 1.3rem;
+
+    padding: 0.4rem 0.8rem;
+
+    font-size: 1.2rem;
+
+    font-weight: bolder;
+
+    border-radius: 10px;
+
+
+
+    background: rgba(255, 255, 255, 0.15);
+
+    backdrop-filter: blur(12px);
+
+    -webkit-backdrop-filter: blur(12px);
+
+
+
+    border: 1px solid rgba(255, 255, 255, 0.3);
+
+    color: var(--color-text-grey);
+
+
+
+    box-shadow:
+
+        inset 0 0 0.5px rgba(255,255,255,0.6),
+
+        0 4px 10px rgba(0,0,0,0.25);
+
+
+
+    transition: 0.2s ease;
+
+    cursor: pointer;
+
+    z-index: 1000;
+
+}
+
+
+
+.sidebar .toggle-btn:hover {
+
+    background: rgba(255, 255, 255, 0.25);
+
+    color: var(--color-accent-1);
 
 }
 

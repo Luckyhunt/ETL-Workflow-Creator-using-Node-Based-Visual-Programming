@@ -71,16 +71,19 @@
 }
 
 .nav-item.create-btn {
-    background: linear-gradient(20deg, var(--color-accent-1), var(--color-accent-2));
+    background: linear-gradient(37deg, var(--color-accent-1), var(--color-accent-2));
     color: white;
-    box-shadow: 0 4px 12px rgba(82, 69, 229, 0.2);
+    box-shadow: 0 4px 12px var(--color-accent-1-light);
     justify-content: center;
     margin-bottom: 16px;
+    border: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-item.create-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(82, 69, 229, 0.3);
+    box-shadow: 0 8px 20px var(--color-accent-1-light);
+    filter: brightness(1.1);
 }
 
 /* Sidebar Footer */
@@ -137,7 +140,8 @@
 }
 
 .logout-btn:hover {
-    background: rgba(231, 60, 92, 0.1);
+    background: rgba(231, 60, 92, 0.08);
+    transform: translateX(4px);
 }
 
 /* Main Content */

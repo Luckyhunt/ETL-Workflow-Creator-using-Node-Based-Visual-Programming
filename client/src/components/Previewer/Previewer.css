@@ -61,20 +61,14 @@
 
 
 .previewer .toggle-btn {
-
     position: absolute;
-
-    left: -40px;
-
+    left: -42px;
+    top: 1.3rem; 
 }
 
-
-
 .toggle-btn {
-
     padding: 0.4rem 0.8rem;
-
-    margin: 0.4rem 0.8rem;
+    margin: 0; 
 
     font-size: 1.2rem;
 

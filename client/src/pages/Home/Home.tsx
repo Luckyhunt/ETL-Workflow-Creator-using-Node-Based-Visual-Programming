@@ -36,8 +36,11 @@ const Home = () => {
                         <li><Link to="#">Workflows</Link></li>
                     </ul>
                     <div className="navbar-right-btn">
-                        <button className="login-nav-btn" onClick={() => setIsAuthModalOpen(true)} style={{ background: 'transparent', border: 'none', color: 'var(--color-text-dark)', fontWeight: '600', cursor: 'pointer', marginRight: '20px', fontSize: '1rem' }}>Login</button>
-                        <Link to="/playground">Launch Editor</Link>
+                        <button className="light login-nav-btn" onClick={() => setIsAuthModalOpen(true)}>
+                            Login
+                        </button>
+
+                        <Link to="/editor" className="blue launch-btn">Launch Editor</Link>
                     </div>
                 </div>
             </nav>
@@ -51,7 +54,7 @@ const Home = () => {
                     Build complex ETL workflows, connect enterprise tools, and automate intelligent business logic with our intuitive drag-and-drop architect.
                 </p>
                 <div className="home-hero-btns">
-                    <button className="blue" onClick={() => setIsAuthModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none' }}>
+                    <button className="launch-btn" onClick={() => setIsAuthModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', border: 'none' }}>
                         Get Started <FaArrowRight />
                     </button>
                 </div>

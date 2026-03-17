@@ -19,7 +19,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { workflowApi } from "../../services/workflowApi";
 import { useSearchParams } from "react-router-dom";
 import ShareModal from "../ShareModal/ShareModal";
-const Sidebar = () => {
+const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
 
     const [open, setOpen] = useState<boolean>(true)
     const [isExecuting, setIsExecuting] = useState<boolean>(false)
@@ -325,10 +325,7 @@ const Sidebar = () => {
 
     return (
         <>
-        <motion.div 
-            initial={false}
-            animate={{ width: open ? 250 : 0, x: open ? 0 : -250 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        <div 
             className={open ? "sidebar" : "sidebar close"}
         >
             <div className="sidebar-btn">
@@ -343,74 +340,118 @@ const Sidebar = () => {
                 </div>
             </Link>
 
-            {/* PHASE 12: Worklow Renaming Area */}
-            {open && user && workflowId && (
+            {/* PHASE 16: Workflow Renaming Area / Mode Indicator */}
+            {open && (
                 <div style={{ padding: '0 20px 20px 20px', borderBottom: '1px solid var(--color-border-grey)' }}>
                     <div style={{ position: 'relative' }}>
-                        {isOwner ? (
-                            <input 
-                                value={localName}
-                                onChange={(e) => setLocalName(e.target.value)}
-                                onBlur={() => {
-                                    if (!localName.trim()) setLocalName(workflow.name);
-                                }}
-                                placeholder="Workflow Name"
-                                style={{
-                                    width: '100%',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    borderBottom: nameStatus === 'error' ? '1px solid #ef4444' : '1px solid transparent',
-                                    color: 'var(--color-text-dark)',
-                                    fontWeight: '600',
-                                    fontSize: '0.95rem',
-                                    padding: '4px 0',
-                                    outline: 'none',
-                                    transition: 'all 0.2s'
-                                }}
-                            />
-                        ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ 
-                                    color: 'var(--color-text-dark)', 
-                                    fontWeight: '600', 
-                                    fontSize: '0.95rem',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis'
-                                }}>
-                                    {workflow.name}
-                                </span>
-                                <span style={{ 
-                                    fontSize: '0.65rem', 
-                                    padding: '1px 6px', 
-                                    background: '#e0e7ff', 
-                                    color: '#4338ca', 
-                                    borderRadius: '10px',
-                                    fontWeight: '700'
-                                }}>
-                                    SHARED
-                                </span>
-                            </div>
-                        )}
-                        
-                        {isOwner && (
+                        {mode === 'public' ? (
                             <div style={{ 
-                                position: 'absolute', 
-                                right: 0, 
-                                top: '50%', 
-                                transform: 'translateY(-50%)',
-                                fontSize: '0.75rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                gap: '8px',
+                                background: 'rgba(99, 102, 241, 0.05)',
+                                padding: '12px',
+                                borderRadius: '12px',
+                                border: '1px solid rgba(99, 102, 241, 0.1)'
                             }}>
-                                {nameStatus === 'saving' && <span style={{ color: 'var(--color-text-grey)' }}>Saving...</span>}
-                                {nameStatus === 'saved' && <span style={{ color: '#10b981' }}><FaCheck /> Saved</span>}
-                                {nameStatus === 'error' && <span style={{ color: '#ef4444' }}><FaTimes /> Error</span>}
+                                <span style={{ 
+                                    color: 'var(--color-accent-1)', 
+                                    fontWeight: '800', 
+                                    fontSize: '0.9rem',
+                                    letterSpacing: '0.5px'
+                                }}>
+                                    PLAYGROUND MODE
+                                </span>
+                                <button 
+                                    onClick={() => navigate('/')}
+                                    style={{
+                                        background: 'linear-gradient(37deg, var(--color-accent-1), var(--color-accent-2))',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '8px',
+                                        borderRadius: '8px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 4px 10px var(--color-accent-1-light)'
+                                    }}
+                                >
+                                    Login to Save
+                                </button>
                             </div>
+                        ) : (
+                            <>
+                                {user && workflowId ? (
+                                    <>
+                                        {isOwner ? (
+                                            <input 
+                                                value={localName}
+                                                onChange={(e) => setLocalName(e.target.value)}
+                                                onBlur={() => {
+                                                    if (!localName.trim()) setLocalName(workflow.name);
+                                                }}
+                                                placeholder="Workflow Name"
+                                                style={{
+                                                    width: '100%',
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    borderBottom: nameStatus === 'error' ? '1px solid #ef4444' : '1px solid transparent',
+                                                    color: 'var(--color-text-dark)',
+                                                    fontWeight: '600',
+                                                    fontSize: '0.95rem',
+                                                    padding: '4px 0',
+                                                    outline: 'none',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            />
+                                        ) : (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ 
+                                                    color: 'var(--color-text-dark)', 
+                                                    fontWeight: '600', 
+                                                    fontSize: '0.95rem',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis'
+                                                }}>
+                                                    {workflow.name}
+                                                </span>
+                                                <span style={{ 
+                                                    fontSize: '0.65rem', 
+                                                    padding: '1px 6px', 
+                                                    background: '#e0e7ff', 
+                                                    color: '#4338ca', 
+                                                    borderRadius: '10px',
+                                                    fontWeight: '700'
+                                                }}>
+                                                    SHARED
+                                                </span>
+                                            </div>
+                                        )}
+                                        {isOwner && (
+                                            <div style={{ 
+                                                position: 'absolute', 
+                                                right: 0, 
+                                                top: '50%', 
+                                                transform: 'translateY(-50%)',
+                                                fontSize: '0.75rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                            }}>
+                                                {nameStatus === 'saving' && <span style={{ color: 'var(--color-text-grey)' }}>Saving...</span>}
+                                                {nameStatus === 'saved' && <span style={{ color: '#10b981' }}><FaCheck /> Saved</span>}
+                                                {nameStatus === 'error' && <span style={{ color: '#ef4444' }}><FaTimes /> Error</span>}
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <span style={{ color: 'var(--color-text-dark)', fontWeight: '600' }}>Untitled Workflow</span>
+                                )}
+                            </>
                         )}
                     </div>
-                    {isOwner && nameError && (
+                    {mode === 'private' && isOwner && nameError && (
                         <div style={{ color: '#ef4444', fontSize: '0.7rem', marginTop: '4px' }}>
                             {nameError}
                         </div>
@@ -459,7 +500,7 @@ const Sidebar = () => {
                         </button>
                     </div>
                     <ul className="management-secondary-actions">
-                        {user && (
+                        {mode === 'private' && user && (
                             <li className="management-item">
                                 <button 
                                     onClick={handleSave} 
@@ -478,13 +519,7 @@ const Sidebar = () => {
                                 </button>
                             </li>
                         )}
-                        {user && workflowId && (
-                            <li className="management-item">
-                                <button onClick={() => setShowShareModal(true)}>
-                                    <span className="icon"><FaShareFromSquare /></span> Share 
-                                </button>
-                            </li>
-                        )}
+
                         <li className="management-item">
                             <button onClick={() => {
                                 console.log(workflow)
@@ -514,30 +549,49 @@ const Sidebar = () => {
                                     setSelectedOutputNode(availableOutputs[0]._id);
                                 }
                                 setShowGraphModal(true);
-
-
                             }}>
                                 <span className="icon"><MdBarChart /></span> Show Graph
                             </button>
                         </li>
-                        <li className="management-item destructive">
-                            <button onClick={async () => {
-                                if (!window.confirm("Delete this draft?")) return;
-                                try {
-                                    await deleteDraft();
-                                    navigate("/");
-                                } catch (error) {
-                                    alert("Failed to delete draft.");
-                                }
-                            }}>
-                                <span className="icon">🗑️</span> Delete Draft
-                            </button>
-                        </li>
+
+                        {mode === 'private' && user && workflowId && (
+                            <li className="management-item">
+                                <button onClick={() => setShowShareModal(true)}>
+                                    <span className="icon"><FaShareFromSquare /></span> Share 
+                                </button>
+                            </li>
+                        )}
+                        {mode === 'private' && (
+                            <li className="management-item destructive">
+                                <button onClick={async () => {
+                                    if (!window.confirm("Delete this draft?")) return;
+                                    try {
+                                        await deleteDraft();
+                                        navigate("/");
+                                    } catch (error) {
+                                        alert("Failed to delete draft.");
+                                    }
+                                }}>
+                                    <span className="icon">🗑️</span> Delete Draft
+                                </button>
+                            </li>
+                        )}
+                        {mode === 'public' && (
+                            <li className="management-item destructive">
+                                <button onClick={() => {
+                                    if (window.confirm("Reset playground? All unsaved changes will be lost.")) {
+                                        window.location.reload();
+                                    }
+                                }}>
+                                    <span className="icon">🔄</span> Reset Playground
+                                </button>
+                            </li>
+                        )}
                     </ul>
                 </div>
             </div>
 
-        </motion.div>
+        </div>
         
         {/* PHASE 14: Minimal Stacking Fix - Moved outside motion.div */}
         {/* Graph Configuration Modal */}

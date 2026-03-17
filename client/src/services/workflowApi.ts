@@ -23,6 +23,17 @@ export const workflowApi = {
         return data as WorkflowData[];
     },
 
+    // PHASE 17: Get only metadata (no nodes/edges) for fast dashboard loading
+    async getUserWorkflowsMetadata(): Promise<Partial<WorkflowData>[]> {
+        const { data, error } = await supabase
+            .from('workflows')
+            .select('id, name, updated_at, user_id')
+            .order('updated_at', { ascending: false });
+
+        if (error) throw error;
+        return data as Partial<WorkflowData>[];
+    },
+
     // Find the next available "Untitled X" name for the current user
     async generateNextUntitledName(): Promise<string> {
         const { data: workflows, error } = await supabase
@@ -78,6 +89,30 @@ export const workflowApi = {
         // Supabase returns the joined data as an object inside 'workflow'. Process it to a flat structure.
         return data
             .filter((item: any) => item.workflow !== null) // Ignore orphaned shares
+            .map((item: any) => ({
+                ...item.workflow,
+                role: item.role
+            }));
+    },
+
+    // PHASE 17: Get shared metadata only
+    async getSharedWorkflowsMetadata(): Promise<(Partial<WorkflowData> & { role: 'viewer' | 'editor' })[]> {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!userData.user || !userData.user.email) return [];
+
+        const { data, error } = await supabase
+            .from('workflow_shares')
+            .select(`
+                role,
+                workflow:workflows(id, name, updated_at, user_id)
+            `)
+            .eq('shared_with_email', userData.user.email);
+
+        if (error) throw error;
+        
+        return data
+            .filter((item: any) => item.workflow !== null)
             .map((item: any) => ({
                 ...item.workflow,
                 role: item.role

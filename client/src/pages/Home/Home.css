@@ -8,26 +8,24 @@
 
 /* Navbar */
 
-
-
 .home-navbar {
-
-    width: 100vw;
-
+    width: 100%;
     height: 80px;
-
-    background: var(--color-bg-1);
-
     display: flex;
-
-    justify-content: space-around;
-
+    justify-content: space-between;
     align-items: center;
-
+    padding: 0 48px;
     position: fixed;
-
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    background: rgb(255, 255, 255);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+    transition: all 0.3s ease;
 }
-
 
 
 .logo-container {
@@ -65,11 +63,9 @@
 
 
 .navbar-right {
-
     display: flex;
-
-    gap: 20px;
-
+    align-items: center;
+    gap: 32px;
 }
 
 
@@ -108,37 +104,63 @@
 
 }
 
+.navbar-right-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
 
 
-.navbar-right-btn a {
-
-    padding: 0.8rem 1.6rem;
-
+.navbar-right-btn .blue {
+    padding: 0.7rem 1.4rem;
     border-radius: 10px;
+    background: linear-gradient(135deg, var(--color-accent-1), var(--color-accent-2));
+    color: white;
+    font-weight: 600;
+    border: none;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 14px var(--color-accent-1-light);
+}
 
-    background: var(--color-bg-dark);
+.navbar-right-btn .blue:hover {
+    transform: translateY(-2px) scale(1.02);
+}
 
-    color: var(--color-bg-1);
+.navbar-right-btn .light {
+    background: transparent;
+    color: var(--color-text-grey);
+    font-weight: 600;
+    font-size: 1rem;
+    border: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+}
 
-    font-weight: 700;
+.navbar-right-btn .light:hover {
+    color: var(--color-accent-1);
+    background: transparent;
+}
 
-    outline: 2px solid var(--color-bg-dark);
+.login-nav-btn {
+    position: relative;
+    font-weight: 600;
+}
 
+.login-nav-btn::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0%;
+    height: 2px;
+    background: var(--color-accent-1);
     transition: 0.3s;
-
 }
 
-
-
-.navbar-right-btn a:hover {
-
-    background: var(--color-bg-1);
-
-    color: var(--color-text-dark);
-
+.login-nav-btn:hover::after {
+    width: 100%;
 }
-
-
 
 /* Hero */
 
@@ -192,7 +214,8 @@
 
 
 
-.home-hero-btns a, .home-hero-btns button {
+.home-hero-btns a,
+.home-hero-btns button {
 
     padding: 1.2rem 2.4rem;
 
@@ -351,7 +374,7 @@
 
     box-shadow: 10px 10px 20px 0 var(--color-shadow-1),
 
-                inset 10px 10px 20px 0 var(--color-shadow-1);
+        inset 10px 10px 20px 0 var(--color-shadow-1);
 
 }
 
@@ -407,4 +430,34 @@
 
     font-size: 1.5rem;
 
+}
+
+
+@media (max-width: 900px) {
+    .navbar-right-links {
+        display: none;
+        /* hide menu */
+    }
+
+    .navbar-right {
+        gap: 16px;
+    }
+
+    .launch-btn {
+        padding: 0.6rem 1.2rem;
+    }
+}
+
+.launch-btn {
+    transform: translateY(0);
+    background: linear-gradient(37deg, var(--color-accent-1), var(--color-accent-2));
+    color: white;
+    box-shadow: 0 8px 20px var(--color-accent-1-light);
+    border: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.launch-btn:active {
+    transform: translateY(2px) scale(0.98);
+    box-shadow: 0 4px 10px var(--color-accent-1-light);
 }

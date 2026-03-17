@@ -6,10 +6,30 @@ import { FaFolderOpen, FaClock, FaTrash, FaPlus, FaShareAlt } from 'react-icons/
 import { workflowApi } from '../../services/workflowApi';
 import type { WorkflowData } from '../../services/workflowApi';
 
+const SkeletonCard = () => (
+    <div style={{
+        background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border-grey)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: '16px', opacity: 0.6
+    }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div className="skeleton-pulse" style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f1f5f9' }}></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div className="skeleton-pulse" style={{ width: '150px', height: '18px', borderRadius: '4px', background: '#f1f5f9' }}></div>
+                <div className="skeleton-pulse" style={{ width: '100px', height: '12px', borderRadius: '4px', background: '#f1f5f9' }}></div>
+            </div>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+            <div className="skeleton-pulse" style={{ width: '100px', height: '36px', borderRadius: '6px', background: '#f1f5f9' }}></div>
+            <div className="skeleton-pulse" style={{ width: '40px', height: '36px', borderRadius: '6px', background: '#f1f5f9' }}></div>
+        </div>
+    </div>
+);
+
 const WorkflowsList: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [ownedWorkflows, setOwnedWorkflows] = useState<WorkflowData[]>([]);
+    const [ownedWorkflows, setOwnedWorkflows] = useState<Partial<WorkflowData>[]>([]);
     const [sharedWorkflows, setSharedWorkflows] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'owned' | 'shared'>('owned');
@@ -18,8 +38,8 @@ const WorkflowsList: React.FC = () => {
         try {
             setLoading(true);
             const [owned, shared] = await Promise.all([
-                workflowApi.getUserWorkflows(),
-                workflowApi.getSharedWorkflows()
+                workflowApi.getUserWorkflowsMetadata(),
+                workflowApi.getSharedWorkflowsMetadata()
             ]);
             setOwnedWorkflows(owned);
             setSharedWorkflows(shared);
@@ -34,8 +54,9 @@ const WorkflowsList: React.FC = () => {
         fetchWorkflows();
     }, []);
 
-    const handleDelete = async (e: React.MouseEvent, id: string) => {
+    const handleDelete = async (e: React.MouseEvent, id?: string) => {
         e.stopPropagation();
+        if (!id) return;
         if (window.confirm("Are you sure you want to delete this workflow?")) {
             try {
                 await workflowApi.deleteWorkflow(id);
@@ -69,6 +90,18 @@ const WorkflowsList: React.FC = () => {
             animate="visible"
             variants={containerVariants}
         >
+            <style>
+                {`
+                @keyframes pulse {
+                    0% { opacity: 0.6; }
+                    50% { opacity: 0.3; }
+                    100% { opacity: 0.6; }
+                }
+                .skeleton-pulse {
+                    animation: pulse 1.5s infinite ease-in-out;
+                }
+                `}
+            </style>
             <motion.div 
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-grey)', paddingBottom: '20px' }}
                 variants={itemVariants}
@@ -133,9 +166,11 @@ const WorkflowsList: React.FC = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-grey)' }}
+                        style={{ display: 'flex', flexDirection: 'column' }}
                     >
-                        Loading workflows...
+                        <SkeletonCard />
+                        <SkeletonCard />
+                        <SkeletonCard />
                     </motion.div>
                 ) : activeTab === 'owned' ? (
                     // OWNED WORKFLOWS LIST
@@ -167,7 +202,7 @@ const WorkflowsList: React.FC = () => {
                                         <div>
                                             <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: 'var(--color-text-dark)' }}>{wf.name}</h3>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: 'var(--color-text-grey)' }}>
-                                                <FaClock /> Last updated: {new Date(wf.updated_at).toLocaleString()}
+                                                <FaClock /> Last updated: {wf.updated_at ? new Date(wf.updated_at).toLocaleString() : 'Never'}
                                             </div>
                                         </div>
                                     </div>
@@ -236,7 +271,7 @@ const WorkflowsList: React.FC = () => {
                                                 </span>
                                             </h3>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: 'var(--color-text-grey)' }}>
-                                                <FaClock /> Last updated: {new Date(wf.updated_at).toLocaleString()}
+                                                <FaClock /> Last updated: {wf.updated_at ? new Date(wf.updated_at).toLocaleString() : 'Never'}
                                             </div>
                                         </div>
                                     </div>

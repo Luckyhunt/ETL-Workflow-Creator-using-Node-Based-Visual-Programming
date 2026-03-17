@@ -1,6 +1,8 @@
 import { Link } from "react-router"
+import { useState } from "react"
 
 import "./Home.css"
+import AuthModal from "../../components/AuthModal/AuthModal"
 
 import Logo from "../../images/logo.svg"
 
@@ -8,8 +10,17 @@ import { FaCheck } from "react-icons/fa6";
 import { FaUserCircle } from "react-icons/fa";
 import { FaGear } from "react-icons/fa6";
 import { FaRobot } from "react-icons/fa";
+import { useAuth } from "../../contexts/AuthContext";
+import { Navigate } from "react-router-dom";
 
 const Home = () => {
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const { user } = useAuth();
+
+    if (user) {
+        return <Navigate to="/dashboard" replace />;
+    }
+
     return (
         <div className="home">
             {/* Navbar */}
@@ -25,6 +36,7 @@ const Home = () => {
                         <li><Link to="#">Workflows</Link></li>
                     </ul>
                     <div className="navbar-right-btn">
+                        <button className="login-nav-btn" onClick={() => setIsAuthModalOpen(true)} style={{ background: 'transparent', border: 'none', color: 'var(--color-text-dark)', fontWeight: '600', cursor: 'pointer', marginRight: '20px', fontSize: '1rem' }}>Login</button>
                         <Link to="/playground">Launch Editor</Link>
                     </div>
                 </div>
@@ -39,7 +51,7 @@ const Home = () => {
                     Build complex ETL workflows, connect enterprise tools, and automate intelligent business logic with our intuitive drag-and-drop architect.
                 </p>
                 <div className="home-hero-btns">
-                    <Link className="blue" to="#">Get Started</Link>
+                    <button className="blue" onClick={() => setIsAuthModalOpen(true)} style={{ border: 'none', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold' }}>Get Started</button>
                     <Link className="light" to="#">Watch Demo</Link>
                 </div>
             </div>
@@ -90,6 +102,8 @@ const Home = () => {
                     </div>
                 </div>
             </div>
+
+            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
         </div>
     )
 }

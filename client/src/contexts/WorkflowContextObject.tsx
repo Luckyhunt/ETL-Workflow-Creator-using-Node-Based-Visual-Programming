@@ -13,6 +13,7 @@ export type WorkflowContextType = {
     setSelectedNode: (node: WorkflowNode | null) => void;
     deleteDraft: () => void;
     shareWorkflow: () => Promise<string>;
+    setWorkflowState: (workflow: Workflow) => void;
 };
 
 export const WorkflowContext = createContext<WorkflowContextType | undefined>(undefined);

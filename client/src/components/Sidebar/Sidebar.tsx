@@ -14,7 +14,10 @@ import { FaShareFromSquare } from "react-icons/fa6";
 import { MdSave } from "react-icons/md";
 import { MdBarChart } from "react-icons/md";
 import { workflowExecutionService } from "../../services/WorkflowExecutionService";
-
+import { useAuth } from "../../contexts/AuthContext";
+import { workflowApi } from "../../services/workflowApi";
+import { useSearchParams } from "react-router-dom";
+import ShareModal from "../ShareModal/ShareModal";
 const Sidebar = () => {
 
     const [open, setOpen] = useState<boolean>(true)
@@ -28,7 +31,13 @@ const Sidebar = () => {
     const [selectedOutputNode, setSelectedOutputNode] = useState<string>('')
     const [graphUrl, setGraphUrl] = useState<string | null>(null)
     const [showGraphDisplay, setShowGraphDisplay] = useState<boolean>(false)
+    const [showShareModal, setShowShareModal] = useState<boolean>(false)
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams();
+    const workflowId = searchParams.get('id');
+    const { user } = useAuth();
     const { workflow, addNode, deleteDraft, shareWorkflow, updateNode } = useWorkflow()
 
     const createNewInputNode = () => {
@@ -51,7 +60,7 @@ const Sidebar = () => {
         const newTransformNode: WorkflowNode = {
             _id: uuidv4(),
             type: "transform",
-            position: {x: 500, y: 100},
+            position: { x: 500, y: 100 },
             data: {
                 transformType: TransformType.FILTER,
                 columnName: '',
@@ -65,11 +74,11 @@ const Sidebar = () => {
         const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output')
         const outputNumber = outputNodes.length + 1
         const outputName = `Output ${outputNumber}`
-        
+
         const newOutputNode: WorkflowNode = {
             _id: uuidv4(),
             type: 'output',
-            position: {x: 600, y: 200},
+            position: { x: 600, y: 200 },
             name: outputName,
             data: {
                 file: {
@@ -86,23 +95,23 @@ const Sidebar = () => {
         try {
             setIsExecuting(true);
             const result = await workflowExecutionService.executeWorkflow(workflow);
-            
+
             if (result.success) {
                 const results = result.results || {};
-                
+
                 // Update each output node with its OWN execution result
                 const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
-                
+
                 outputNodes.forEach((outputNode, index) => {
                     const nodeResult = results[outputNode._id];
                     if (!nodeResult) return;
-                    
+
                     const outputData = outputNode.data as { file: any };
                     const outputName = outputNodes.length > 1 ? `Output ${index + 1}` : 'Output';
-                    
+
                     // Get the actual data - could be wrapped in .data property or direct
                     const processedData = nodeResult.processedData || nodeResult.data || nodeResult;
-                    
+
                     updateNode(outputNode._id, {
                         file: {
                             ...outputData.file,
@@ -112,7 +121,7 @@ const Sidebar = () => {
                         }
                     });
                 });
-                
+
                 console.log("All output results:", results);
             } else {
                 console.error("Execution error:", result.error);
@@ -128,34 +137,34 @@ const Sidebar = () => {
         const outputNode = workflow.definition.nodes.find(n => n.type === 'output');
         const outputData = outputNode?.data as any;
         const processedData = outputData?.file?.processedData || [];
-        
+
         if (!processedData || processedData.length === 0) {
             alert('No processed data available. Please run the workflow first.');
             return;
         }
-        
+
         const columns = Object.keys(processedData[0]);
-        const numericColumns = columns.filter(col => 
+        const numericColumns = columns.filter(col =>
             typeof processedData[0][col] === 'number'
         );
-        
+
         if (numericColumns.length === 0) {
             alert('No numeric columns found for graph generation.');
             return;
         }
-        
+
         const xCol = columns[0];
         const yCol = numericColumns[0];
-        
+
         try {
             const result = await workflowExecutionService.generateGraph(
-                processedData, 
-                graphType, 
-                xCol, 
-                yCol, 
+                processedData,
+                graphType,
+                xCol,
+                yCol,
                 `Graph: ${yCol} by ${xCol}`
             );
-            
+
             if (result.success && result.graph_url) {
                 const graphWindow = window.open('', '_blank', 'width=800,height=600');
                 if (graphWindow) {
@@ -176,6 +185,54 @@ const Sidebar = () => {
             alert('Error generating graph. Please ensure the backend is running.');
         }
     };
+    const handleSave = async () => {
+        if (!user) {
+            alert("You must be logged in to save workflows.");
+            return;
+        }
+
+        if (isSaving) return; // Prevent multiple saves
+        setIsSaving(true);
+        setSaveStatus('saving');
+        
+        try {
+            // PHASE 5: DATA SAFETY & SANITIZATION
+            // Strip out large analytical caches or circular references
+            const replacer = (key: string, value: any) => {
+                if (key === 'processedData' || key === 'previewData') return undefined;
+                if (value === undefined) return undefined;
+                return value;
+            };
+
+            const cleanNodes = JSON.parse(JSON.stringify(workflow.definition.nodes, replacer));
+            
+            // Sanitize edges to remove huge analytical payloads
+            const cleanEdges = JSON.parse(JSON.stringify(workflow.definition.edges, replacer));
+
+            if (workflowId) {
+                // PHASE 1-3: UPDATE EXISTING WITHOUT UI RESET
+                await workflowApi.updateWorkflow(workflowId, workflow.name || 'Updated Workflow', cleanNodes, cleanEdges);
+                console.log("Workflow saved successfully (Partial Update)!");
+            } else {
+                const newWf = await workflowApi.createWorkflow(workflow.name || 'New Workflow', cleanNodes, cleanEdges);
+                navigate(`/playground?id=${newWf.id}`, { replace: true });
+                console.log("New workflow created and saved!");
+            }
+            
+            setSaveStatus('success');
+            setTimeout(() => setSaveStatus('idle'), 3000);
+            
+        } catch (error: any) {
+            console.error("Save error:", error);
+            setSaveStatus('error');
+            setTimeout(() => setSaveStatus('idle'), 4000);
+        } finally {
+            // PHASE 6: SAVE CONTROL (Debounce release)
+            setTimeout(() => {
+                setIsSaving(false);
+            }, 1000);
+        }
+    };
 
     return (
         <div className={open ? "sidebar" : "sidebar close"}>
@@ -184,7 +241,7 @@ const Sidebar = () => {
                     {open ? "<<" : ">>"}
                 </button>
             </div>
-            <Link to="/">
+            <Link to={user ? "/dashboard" : "/"}>
                 <div className="sidebar-logo logo-container">
                     <img src={Logo} alt="" />
                     <span className="sidebar-logo-name">NodeFlow</span>
@@ -219,27 +276,31 @@ const Sidebar = () => {
                         </button>
                     </div>
                     <ul className="management-secondary-actions">
-                        {false && (
-                        <li className="management-item">
-                            <button onClick={() => alert('Save functionality coming soon!')}>
-                                <span className="icon"><MdSave /></span> Save
-                            </button>
-                        </li>
+                        {user && (
+                            <li className="management-item">
+                                <button 
+                                    onClick={handleSave} 
+                                    disabled={isSaving}
+                                    style={{
+                                        backgroundColor: saveStatus === 'success' ? 'var(--color-success, #10b981)' : saveStatus === 'error' ? 'var(--color-error, #ef4444)' : '',
+                                        color: (saveStatus === 'success' || saveStatus === 'error') ? 'white' : '',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                >
+                                    <span className="icon"><MdSave /></span> 
+                                    {saveStatus === 'saving' ? 'Saving...' : 
+                                     saveStatus === 'success' ? 'Saved ✅' : 
+                                     saveStatus === 'error' ? 'Failed ❌' : 
+                                     'Save Workflow'}
+                                </button>
+                            </li>
                         )}
-                        {false && (
-                        <li className="management-item">
-                            <button onClick={async () => {
-                                try {
-                                    const shareUrl = await shareWorkflow();
-                                    await navigator.clipboard.writeText(shareUrl);
-                                    alert(`Workflow shared!\n${shareUrl}`);
-                                } catch (error) {
-                                    alert('Failed to share workflow.');
-                                }
-                            }}>
-                                <span className="icon"><FaShareFromSquare /></span> Share
-                            </button>
-                        </li>
+                        {user && workflowId && (
+                            <li className="management-item">
+                                <button onClick={() => setShowShareModal(true)}>
+                                    <span className="icon"><FaShareFromSquare /></span> Share 
+                                </button>
+                            </li>
                         )}
                         <li className="management-item">
                             <button onClick={() => {
@@ -248,18 +309,18 @@ const Sidebar = () => {
                                 const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
                                 const lastOutputNode = outputNodes[outputNodes.length - 1];
                                 const processedData = (lastOutputNode?.data as any)?.file?.processedData || [];
-                                
+
                                 if (!processedData || processedData.length === 0) {
                                     alert('No processed data available. Run workflow first.');
                                     return;
                                 }
-                                
+
                                 // Extract columns
                                 const columns = Object.keys(processedData[0]);
-                                const numericCols = columns.filter(col => 
+                                const numericCols = columns.filter(col =>
                                     typeof processedData[0][col] === 'number'
                                 );
-                                
+
                                 setAvailableColumns(columns);
                                 setNumericColumns(numericCols);
                                 setXColumn(columns[0] || '');
@@ -292,7 +353,7 @@ const Sidebar = () => {
                     </ul>
                 </div>
             </div>
-            
+
             {/* Graph Configuration Modal */}
             {showGraphModal && (
                 <div style={{
@@ -320,18 +381,18 @@ const Sidebar = () => {
                             padding: '20px',
                             borderBottom: '1px solid #e5e7eb'
                         }}>
-                            <h3 style={{ 
-                                margin: 0, 
+                            <h3 style={{
+                                margin: 0,
                                 color: '#1f2937',
                                 fontSize: '18px',
                                 fontWeight: '600'
                             }}>Graph Configuration</h3>
                         </div>
-                        
+
                         <div style={{ padding: '20px' }}>
                             <div style={{ marginBottom: '15px' }}>
-                                <label style={{ 
-                                    color: '#6b7280', 
+                                <label style={{
+                                    color: '#6b7280',
                                     fontSize: '12px',
                                     textTransform: 'uppercase',
                                     fontWeight: '600',
@@ -353,9 +414,9 @@ const Sidebar = () => {
                                             }
                                         }
                                     }}
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '10px', 
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
                                         marginTop: '6px',
                                         backgroundColor: '#ffffff',
                                         color: '#1f2937',
@@ -371,21 +432,21 @@ const Sidebar = () => {
                                     ))}
                                 </select>
                             </div>
-                            
+
                             <div style={{ marginBottom: '15px' }}>
-                                <label style={{ 
-                                    color: '#6b7280', 
+                                <label style={{
+                                    color: '#6b7280',
                                     fontSize: '12px',
                                     textTransform: 'uppercase',
                                     fontWeight: '600',
                                     letterSpacing: '0.5px'
                                 }}>Graph Type</label>
-                                <select 
+                                <select
                                     value={graphType}
                                     onChange={(e) => setGraphType(e.target.value)}
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '10px', 
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
                                         marginTop: '6px',
                                         backgroundColor: '#ffffff',
                                         color: '#1f2937',
@@ -401,10 +462,10 @@ const Sidebar = () => {
                                     <option value="hist">Histogram</option>
                                 </select>
                             </div>
-                            
+
                             <div style={{ marginBottom: '15px' }}>
-                                <label style={{ 
-                                    color: '#6b7280', 
+                                <label style={{
+                                    color: '#6b7280',
                                     fontSize: '12px',
                                     textTransform: 'uppercase',
                                     fontWeight: '600',
@@ -413,9 +474,9 @@ const Sidebar = () => {
                                 <select
                                     value={xColumn}
                                     onChange={(e) => setXColumn(e.target.value)}
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '10px', 
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
                                         marginTop: '6px',
                                         backgroundColor: '#ffffff',
                                         color: '#1f2937',
@@ -429,10 +490,10 @@ const Sidebar = () => {
                                     ))}
                                 </select>
                             </div>
-                            
+
                             <div style={{ marginBottom: '20px' }}>
-                                <label style={{ 
-                                    color: '#6b7280', 
+                                <label style={{
+                                    color: '#6b7280',
                                     fontSize: '12px',
                                     textTransform: 'uppercase',
                                     fontWeight: '600',
@@ -441,9 +502,9 @@ const Sidebar = () => {
                                 <select
                                     value={yColumn}
                                     onChange={(e) => setYColumn(e.target.value)}
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '10px', 
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
                                         marginTop: '6px',
                                         backgroundColor: '#ffffff',
                                         color: '#1f2937',
@@ -458,44 +519,44 @@ const Sidebar = () => {
                                     ))}
                                 </select>
                             </div>
-                            
+
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button
                                     onClick={async () => {
                                         const outputNodes = workflow.definition.nodes.filter(n => n.type === 'output');
                                         const outputNode = outputNodes.find(n => n._id === selectedOutputNode) || outputNodes[0];
-                                        
+
                                         let processedData = (outputNode?.data as any)?.file?.processedData || [];
-                                        
+
                                         console.log('[GRAPH] Raw processedData:', processedData);
                                         console.log('[GRAPH] Type:', typeof processedData, 'Is Array:', Array.isArray(processedData));
-                                        
+
                                         // Flatten if data is nested (array of arrays)
                                         if (Array.isArray(processedData) && processedData.length > 0 && Array.isArray(processedData[0])) {
                                             processedData = processedData.flat();
                                             console.log('[GRAPH] Flattened data:', processedData);
                                         }
-                                        
+
                                         // If data is an object with data property, extract it
                                         if (!Array.isArray(processedData) && processedData.data && Array.isArray(processedData.data)) {
                                             processedData = processedData.data;
                                             console.log('[GRAPH] Extracted data from object:', processedData);
                                         }
-                                        
+
                                         if (!processedData || processedData.length === 0) {
                                             alert('No data available. Please execute the workflow first.');
                                             return;
                                         }
-                                        
+
                                         // Check first row structure
                                         console.log('[GRAPH] First row:', processedData[0]);
                                         console.log('[GRAPH] Columns:', Object.keys(processedData[0] || {}));
-                                        
+
                                         if (!xColumn) {
                                             alert('Please select an X-axis column.');
                                             return;
                                         }
-                                        
+
                                         try {
                                             const result = await workflowExecutionService.generateGraph(
                                                 processedData,
@@ -504,7 +565,7 @@ const Sidebar = () => {
                                                 yColumn || undefined,
                                                 `${yColumn || 'Count'} by ${xColumn}`
                                             );
-                                            
+
                                             if (result.success && result.graph_url) {
                                                 setGraphUrl(result.graph_url);
                                                 setShowGraphDisplay(true);
@@ -518,12 +579,12 @@ const Sidebar = () => {
                                             alert('Error generating graph. Check backend.');
                                         }
                                     }}
-                                    style={{ 
-                                        flex: 1, 
-                                        padding: '12px', 
-                                        backgroundColor: '#3b82f6', 
-                                        color: 'white', 
-                                        border: 'none', 
+                                    style={{
+                                        flex: 1,
+                                        padding: '12px',
+                                        backgroundColor: '#3b82f6',
+                                        color: 'white',
+                                        border: 'none',
                                         borderRadius: '6px',
                                         fontSize: '14px',
                                         fontWeight: '600',
@@ -534,12 +595,12 @@ const Sidebar = () => {
                                 </button>
                                 <button
                                     onClick={() => setShowGraphModal(false)}
-                                    style={{ 
-                                        flex: 1, 
-                                        padding: '12px', 
-                                        backgroundColor: '#f3f4f6', 
-                                        color: '#4b5563', 
-                                        border: '1px solid #d1d5db', 
+                                    style={{
+                                        flex: 1,
+                                        padding: '12px',
+                                        backgroundColor: '#f3f4f6',
+                                        color: '#4b5563',
+                                        border: '1px solid #d1d5db',
                                         borderRadius: '6px',
                                         fontSize: '14px',
                                         fontWeight: '600',
@@ -553,7 +614,7 @@ const Sidebar = () => {
                     </div>
                 </div>
             )}
-            
+
             {/* Graph Display Section */}
             {showGraphDisplay && graphUrl && (
                 <div style={{
@@ -647,6 +708,10 @@ const Sidebar = () => {
                         </div>
                     </div>
                 </div>
+            )}
+            
+            {showShareModal && workflowId && (
+                <ShareModal workflowId={workflowId} onClose={() => setShowShareModal(false)} />
             )}
         </div>
     )

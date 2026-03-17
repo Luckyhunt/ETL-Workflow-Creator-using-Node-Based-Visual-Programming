@@ -139,6 +139,10 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return `${window.location.origin}/shared/${encodedData}`;
     }
 
+    const setWorkflowState = (newWorkflowState: Workflow) => {
+        setWorkflow(newWorkflowState);
+    };
+
     return (
         <WorkflowContext.Provider value={{
             workflow,
@@ -151,7 +155,8 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             setActiveSourceNode,
             setSelectedNode,
             deleteDraft,
-            shareWorkflow
+            shareWorkflow,
+            setWorkflowState
         }}>
             {children}
         </WorkflowContext.Provider>

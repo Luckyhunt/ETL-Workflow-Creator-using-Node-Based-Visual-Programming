@@ -40,7 +40,7 @@ const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
     const [searchParams] = useSearchParams();
     const workflowId = searchParams.get('id');
     const { user } = useAuth();
-    const { workflow, addNode, deleteDraft, shareWorkflow, updateNode, setWorkflowName } = useWorkflow()
+    const { workflow, addNode, deleteDraft, shareWorkflow, updateNode, setWorkflowName, setWorkflowState } = useWorkflow()
     
     // PHASE 12: Ownership Check
     const isOwner = !user || workflow.user_id === user.id;
@@ -305,11 +305,21 @@ const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
                 console.log("Workflow saved successfully (Partial Update)!");
             } else {
                 const newWf = await workflowApi.createWorkflow(workflow.name, cleanNodes, cleanEdges);
+                
+                // CRITICAL FIX: Update context state WITH the new ID before navigating
+                // This prevents the Playground useEffect from triggering a re-fetch
+                setWorkflowState({
+                    ...workflow,
+                    _id: newWf.id,
+                    user_id: newWf.user_id
+                });
+
                 navigate(`/playground?id=${newWf.id}`, { replace: true });
                 console.log("New workflow created and saved!");
             }
             
             setSaveStatus('success');
+            toast.success("Workflow Saved Successfully! ✅");
             setTimeout(() => setSaveStatus('idle'), 3000);
             
         } catch (error: any) {

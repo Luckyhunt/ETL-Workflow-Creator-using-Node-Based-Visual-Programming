@@ -217,7 +217,7 @@ NodeFlow is structurally prepared to scale. Here are the immediate future pipeli
    ```env
    VITE_SUPABASE_URL=your_supabase_project_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   VITE_BACKEND_URL=http://localhost:8000
+   VITE_BACKEND_URL=http://localhost:8000 or your_backend_url
    ```
 5. Start development server: `npm run dev`
 

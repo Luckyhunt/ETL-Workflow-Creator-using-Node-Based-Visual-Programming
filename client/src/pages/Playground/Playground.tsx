@@ -9,112 +9,127 @@ import { useSearchParams } from "react-router-dom"
 import { workflowApi } from "../../services/workflowApi"
 import { useWorkflow } from "../../contexts/useWorkflow"
 import { useAuth } from "../../contexts/AuthContext"
+import { getWorkflowRole } from "../../utils/workflowPermissions"
+import type { WorkflowRole } from "../../utils/workflowPermissions"
 
 const Playground = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
   const [searchParams] = useSearchParams();
   const workflowId = searchParams.get('id');
-  const { workflow, setWorkflowState, setWorkflowName, deleteDraft } = useWorkflow();
+  const { workflow, setWorkflowState, deleteDraft } = useWorkflow();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(mode === 'private' && !!workflowId);
-  const [isOwner, setIsOwner] = useState(mode === 'private');
+  // RBAC: resolved role for current user (owner/editor/viewer)
+  const [role, setRole] = useState<WorkflowRole>('viewer');
 
+  // ─── Core Fetch Logic ─────────────────────────────────────────
+  const loadWorkflow = async (skipIfLoaded = true) => {
+    if (mode !== 'private' || !workflowId) {
+      if (mode === 'private' && !workflowId && workflow._id) deleteDraft();
+      setIsLoading(false);
+      return;
+    }
+
+    // PERFORMANCE FIX: Skip if data already in memory (e.g. after a save)
+    if (skipIfLoaded && workflow._id === workflowId) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const data = await workflowApi.getWorkflow(workflowId);
+
+      // RBAC: Resolve the user's role based on ownership vs shared access
+      const resolvedRole = getWorkflowRole(
+        { user_id: data.user_id, sharedRole: (data as any).sharedRole ?? null },
+        user
+      );
+      setRole(resolvedRole);
+
+      setWorkflowState({
+        _id: data.id,
+        user_id: data.user_id,
+        name: data.name,
+        activeSourceNode: null,
+        selectedNode: null,
+        definition: {
+          nodes: data.nodes as any,
+          edges: data.edges as any
+        }
+      });
+    } catch (error) {
+      console.error("Failed to load workflow:", error);
+      toast.error("Failed to load workflow. It may have been deleted or you don't have access.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ─── Load on URL / mode change ────────────────────────────────
   useEffect(() => {
-    const loadWorkflow = async () => {
-      // ONLY load from backend if in private mode and we have an ID
-      if (mode === 'private' && workflowId) {
-        // PERFORMANCE FIX: Skip loading if we already have this workflow in memory (e.g. after a save)
-        if (workflow._id === workflowId) {
-          console.log("Playground: Workflow already in memory, skipping redundant fetch.");
-          setIsLoading(false);
-          return;
-        }
-
-        try {
-          setIsLoading(true);
-          const data = await workflowApi.getWorkflow(workflowId);
-          setIsOwner(!user || data.user_id === user.id);
-          setWorkflowState({
-            _id: data.id,
-            user_id: data.user_id,
-            name: data.name,
-            activeSourceNode: null,
-            selectedNode: null,
-            definition: {
-              nodes: data.nodes as any,
-              edges: data.edges as any
-            }
-          });
-        } catch (error) {
-          console.error("Failed to load workflow:", error);
-          toast.error("Failed to load workflow. It may have been deleted.");
-        } finally {
-          setIsLoading(false);
-        }
-      } else if (mode === 'private') {
-        // Only delete draft in private mode when starting fresh
-        // CRITICAL CHECK: Don't delete draft if we are in the middle of a transition
-        if (!workflowId && workflow._id) {
-          deleteDraft();
-        }
-        setIsLoading(false);
-      } else {
-        // Public mode: do nothing, keep existing in-memory state or blank
-        setIsLoading(false);
-      }
-    };
-
     loadWorkflow();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId, mode]);
 
+  // ─── ISSUE 4: Re-resolve role when user logs in/out ───────────
+  useEffect(() => {
+    if (mode === 'public') return;
+    if (workflowId) {
+      // Force fresh load so permissions are re-evaluated for the new user session
+      loadWorkflow(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // ─── Loading Spinner ──────────────────────────────────────────
   if (isLoading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--color-text-grey)' }}>Loading Workflow...</div>;
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+        alignItems: 'center', height: '100vh', color: 'var(--color-text-grey)',
+        fontFamily: '"Plus Jakarta Sans", sans-serif', gap: '12px'
+      }}>
+        <div style={{
+          width: '36px', height: '36px', border: '3px solid var(--color-border-grey)',
+          borderTopColor: 'var(--color-accent-1)', borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <span>Loading Workflow...</span>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
   return (
     <div className='playground'>
       <div className="playground-container">
-        {/* Sidebar */}
-        <Sidebar mode={mode} />
+        {/* Sidebar — receives RBAC role for permission gating */}
+        <Sidebar mode={mode} role={role} />
 
         {/* Canvas Area */}
-        {/* Canvas Area with Phase 17: Playground Mode Banner */}
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {mode === 'public' && (
             <div style={{
               background: 'linear-gradient(90deg, var(--color-accent-1), var(--color-accent-2))',
-              color: 'white',
-              padding: '10px 20px',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '15px',
-              fontSize: '0.9rem',
-              fontWeight: '600',
-              zIndex: 10,
+              color: 'white', padding: '10px 20px', display: 'flex',
+              justifyContent: 'center', alignItems: 'center', gap: '15px',
+              fontSize: '0.9rem', fontWeight: '600', zIndex: 10,
               boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
             }}>
-              <span>Playground Mode — Changes won't be saved.</span>
+              <span>⚡ Playground Mode — Changes won't be saved.</span>
               <button
                 onClick={() => window.location.href = '/'}
                 style={{
-                  background: 'rgba(255,255,255,0.2)',
-                  border: '1px solid rgba(255,255,255,0.4)',
-                  color: 'white',
-                  padding: '4px 12px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '0.8rem',
-                  fontWeight: '700',
-                  transition: 'all 0.2s'
+                  background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)',
+                  color: 'white', padding: '4px 12px', borderRadius: '6px',
+                  cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', transition: 'all 0.2s'
                 }}
-              >
-                Login to Save
-              </button>
+              >Login to Save</button>
             </div>
           )}
           <div style={{ flex: 1, position: 'relative' }}>
-            <PlayCanvas />
+            {/* RBAC: pass canEdit flag — viewer cannot interact */}
+            <PlayCanvas canEdit={mode === 'public' || role !== 'viewer'} />
           </div>
         </div>
 

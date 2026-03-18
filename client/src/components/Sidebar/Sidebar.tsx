@@ -20,7 +20,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import { workflowApi } from "../../services/workflowApi";
 import { useSearchParams } from "react-router-dom";
 import ShareModal from "../ShareModal/ShareModal";
-const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
+import { rolePermissions } from '../../utils/workflowPermissions';
+import type { WorkflowRole } from '../../utils/workflowPermissions';
+
+const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'private'; role?: WorkflowRole }) => {
 
     const [open, setOpen] = useState<boolean>(true)
     const [isExecuting, setIsExecuting] = useState<boolean>(false)
@@ -42,8 +45,11 @@ const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
     const { user } = useAuth();
     const { workflow, addNode, deleteDraft, shareWorkflow, updateNode, setWorkflowName, setWorkflowState } = useWorkflow()
     
-    // PHASE 12: Ownership Check
-    const isOwner = !user || workflow.user_id === user.id;
+    // RBAC: Derive permissions from the resolved role prop
+    const canSave = mode === 'public' ? false : rolePermissions.canSave(role);
+    const canRename = mode === 'public' ? false : rolePermissions.canRename(role);
+    const canShare = mode === 'public' ? false : rolePermissions.canShare(role);
+    const canEditGraph = mode === 'public' ? true : rolePermissions.canEditGraph(role);
 
     // NEW Phase 12 renaming states
     const [localName, setLocalName] = useState(workflow.name);
@@ -59,7 +65,7 @@ const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
 
     // Debounced Auto-Save for Name
     useEffect(() => {
-        if (!workflowId || localName === workflow.name || !user || !isOwner) return;
+        if (!workflowId || localName === workflow.name || !user || !canRename) return;
         
         const timer = setTimeout(async () => {
             if (!localName.trim()) {
@@ -281,6 +287,12 @@ const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
             return;
         }
 
+        // RBAC: Block viewer from saving
+        if (!canSave) {
+            toast.error("You don't have permission to save this workflow.");
+            return;
+        }
+
         if (isSaving) return; // Prevent multiple saves
         setIsSaving(true);
         setSaveStatus('saving');
@@ -394,7 +406,7 @@ const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
                             <>
                                 {user && workflowId ? (
                                     <>
-                                        {isOwner ? (
+                                        {canRename ? (
                                             <input 
                                                 value={localName}
                                                 onChange={(e) => setLocalName(e.target.value)}
@@ -439,7 +451,7 @@ const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
                                                 </span>
                                             </div>
                                         )}
-                                        {isOwner && (
+                                        {canRename && (
                                             <div style={{ 
                                                 position: 'absolute', 
                                                 right: 0, 
@@ -462,7 +474,7 @@ const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
                             </>
                         )}
                     </div>
-                    {mode === 'private' && isOwner && nameError && (
+                    {mode === 'private' && canRename && nameError && (
                         <div style={{ color: '#ef4444', fontSize: '0.7rem', marginTop: '4px' }}>
                             {nameError}
                         </div>

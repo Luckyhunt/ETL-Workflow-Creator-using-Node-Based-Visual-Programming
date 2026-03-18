@@ -4,7 +4,7 @@ import { useWorkflow } from "../../contexts/useWorkflow"
 import CommonNode from "../../editorComponents/CommonNode/CommonNode"
 import Edge from "../../editorComponents/Edge/Edge"
 
-const PlayCanvas = () => {
+const PlayCanvas = ({ canEdit = true }: { canEdit?: boolean }) => {
 
     const [isGrabbing, setGrabbing] = useState<boolean>(false)
     const { workflow, setActiveSourceNode, setSelectedNode } = useWorkflow()

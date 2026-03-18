@@ -18,13 +18,18 @@ const Playground = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
   const { workflow, setWorkflowState, deleteDraft } = useWorkflow();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(mode === 'private' && !!workflowId);
-  // RBAC: resolved role for current user (owner/editor/viewer)
-  const [role, setRole] = useState<WorkflowRole>('viewer');
+  // RBAC: resolved role for current user
+  // Default to 'owner' if logged in with no workflowId (brand new workflow being created)
+  const [role, setRole] = useState<WorkflowRole>(
+    mode === 'private' && !workflowId ? 'owner' : 'viewer'
+  );
 
   // ─── Core Fetch Logic ─────────────────────────────────────────
   const loadWorkflow = async (skipIfLoaded = true) => {
     if (mode !== 'private' || !workflowId) {
       if (mode === 'private' && !workflowId && workflow._id) deleteDraft();
+      // No URL ID = brand new workflow → user is the owner if logged in
+      if (user) setRole('owner');
       setIsLoading(false);
       return;
     }

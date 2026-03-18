@@ -179,57 +179,38 @@ export const workflowApi = {
         return data as WorkflowData;
     },
 
-    // Update an existing workflow (save changes) - Partial Update Logic
-    async updateWorkflow(id: string, name: string, nodes: any[], edges: any[]): Promise<WorkflowData> {
-        // 1. Fetch current database state to merge and diff safely
-        const { data: current, error: fetchError } = await supabase
-            .from('workflows')
-            .select('*')
-            .eq('id', id)
-            .single();
+    // Update an existing workflow (save changes)
+    // Works for BOTH owners and editors — no pre-fetch SELECT required (which would fail for editors under RLS)
+    async updateWorkflow(id: string, name: string, nodes: any[], edges: any[]): Promise<{ id: string }> {
+        const updates: any = {
+            nodes,
+            edges,
+            updated_at: new Date().toISOString(),
+        };
 
-        if (fetchError) throw fetchError;
+        // Only update name if provided
+        if (name) updates.name = name;
 
-        const updates: any = {};
-        
-        if (name && name !== current.name) updates.name = name;
-        
-        // 2. Diff detection (only update elements that actually changed)
-        const currentNodesStr = JSON.stringify(current.nodes || []);
-        const newNodesStr = JSON.stringify(nodes || []);
-        if (currentNodesStr !== newNodesStr) {
-            updates.nodes = nodes;
-        }
-
-        const currentEdgesStr = JSON.stringify(current.edges || []);
-        const newEdgesStr = JSON.stringify(edges || []);
-        if (currentEdgesStr !== newEdgesStr) {
-            updates.edges = edges;
-        }
-
-        // 3. Prevent unnecessary database hits if no changes detected
-        if (Object.keys(updates).length === 0) {
-            return current as WorkflowData;
-        }
-
-        updates.updated_at = new Date().toISOString();
-
-        // 4. Safe Merge
         const { data, error } = await supabase
             .from('workflows')
             .update(updates)
             .eq('id', id)
-            .select();
+            .select('id');
 
-        if (error) throw error;
-        
-        // If RLS blocked the update or it returned 0 rows, return current state
-        if (!data || data.length === 0) {
-            console.warn("Update returned 0 rows. This might be due to RLS permissions.");
-            return current as WorkflowData;
+        if (error) {
+            // Provide a clear message if RLS blocked the update
+            if (error.code === 'PGRST301' || error.message?.includes('row-level security')) {
+                throw new Error('Permission denied: You do not have editor access to this workflow. Contact the owner.');
+            }
+            throw error;
         }
 
-        return data[0] as WorkflowData;
+        if (!data || data.length === 0) {
+            throw new Error('Save failed: No rows updated. Check your Supabase RLS policies for editor UPDATE access.');
+        }
+
+        console.log(`[workflowApi] updateWorkflow success for id=${id}`);
+        return data[0] as { id: string };
     },
 
     // Delete a workflow

@@ -119,8 +119,9 @@ export const workflowApi = {
             }));
     },
 
-    // Get a specific workflow by ID
-    async getWorkflow(id: string): Promise<WorkflowData> {
+    // Get a specific workflow by ID, including the current user's share role (if applicable)
+    async getWorkflow(id: string): Promise<WorkflowData & { sharedRole?: 'editor' | 'viewer' | null }> {
+        // 1. Fetch the workflow itself
         const { data, error } = await supabase
             .from('workflows')
             .select('*')
@@ -128,7 +129,27 @@ export const workflowApi = {
             .single();
 
         if (error) throw error;
-        return data as WorkflowData;
+
+        // 2. Try to resolve the current user's share role (for editors/viewers)
+        let sharedRole: 'editor' | 'viewer' | null = null;
+        try {
+            const { data: userData } = await supabase.auth.getUser();
+            if (userData?.user?.email) {
+                const { data: shareData } = await supabase
+                    .from('workflow_shares')
+                    .select('role')
+                    .eq('workflow_id', id)
+                    .eq('shared_with_email', userData.user.email)
+                    .maybeSingle(); // returns null if no row found (not an error)
+
+                sharedRole = shareData?.role ?? null;
+            }
+        } catch (shareErr) {
+            // Non-fatal — if we can't fetch the share record, treat as no shared role
+            console.warn('Could not fetch share role:', shareErr);
+        }
+
+        return { ...(data as WorkflowData), sharedRole };
     },
 
     // Create a new workflow

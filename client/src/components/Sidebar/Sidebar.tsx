@@ -287,6 +287,9 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
             return;
         }
 
+        // RBAC Debug log (helps diagnose role issues)
+        console.log(`[RBAC] Role: ${role} | canSave: ${canSave} | canRename: ${canRename} | canShare: ${canShare} | canEditGraph: ${canEditGraph}`);
+
         // RBAC: Block viewer from saving
         if (!canSave) {
             toast.error("You don't have permission to save this workflow.");

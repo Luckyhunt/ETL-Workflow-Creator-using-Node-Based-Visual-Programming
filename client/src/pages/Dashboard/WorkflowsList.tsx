@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -45,6 +46,7 @@ const WorkflowsList: React.FC = () => {
             setSharedWorkflows(shared);
         } catch (error) {
             console.error("Failed to load workflows:", error);
+            toast.error("Failed to load workflows. Please check your connection.");
         } finally {
             setLoading(false);
         }
@@ -61,9 +63,10 @@ const WorkflowsList: React.FC = () => {
             try {
                 await workflowApi.deleteWorkflow(id);
                 setOwnedWorkflows(ownedWorkflows.filter(w => w.id !== id));
+                toast.success("Workflow deleted successfully!");
             } catch (error) {
                 console.error("Failed to delete workflow:", error);
-                alert("Failed to delete workflow");
+                toast.error("Failed to delete workflow. Please try again.");
             }
         }
     };

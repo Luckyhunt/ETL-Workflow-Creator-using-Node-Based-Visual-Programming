@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react"
+import { useState, useCallback, useEffect } from "react"
+import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from "framer-motion"
 import { v4 as uuidv4 } from "uuid"
 import { useNavigate, Link } from "react-router-dom";
@@ -208,15 +209,15 @@ const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
                 });
 
                 console.log("All execution results processed.");
-                alert("Execution completed successfully! ✅");
+                toast.success("Execution completed successfully! ✅");
             } else {
                 const errorMsg = data?.error ||  "Execution failed without a specific error message.";
                 console.error("Execution error:", errorMsg);
-                alert("❌ Execution Error: " + errorMsg);
+                toast.error("Execution Error: " + errorMsg);
             }
         } catch (error: any) {
             console.error("Error executing workflow:", error);
-            alert("⚠️ Error during execution: " + (error.message || "Unknown error"));
+            toast.error("Error during execution: " + (error.message || "Unknown error"));
         } finally {
             setIsExecuting(false);
         }
@@ -228,7 +229,7 @@ const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
         const processedData = outputData?.file?.processedData || [];
 
         if (!processedData || processedData.length === 0) {
-            alert('No processed data available. Please run the workflow first.');
+            toast.error('No processed data available. Please run the workflow first.');
             return;
         }
 
@@ -238,7 +239,7 @@ const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
         );
 
         if (numericColumns.length === 0) {
-            alert('No numeric columns found for graph generation.');
+            toast.error('No numeric columns found for graph generation.');
             return;
         }
 
@@ -267,16 +268,16 @@ const Sidebar = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
                     `);
                 }
             } else {
-                alert('Failed to generate graph: ' + (result.error || 'Unknown error'));
+                toast.error('Failed to generate graph: ' + (result.error || 'Unknown error'));
             }
         } catch (error) {
             console.error('Error generating graph:', error);
-            alert('Error generating graph. Please ensure the backend is running.');
+            toast.error('Error generating graph. Please ensure the backend is running.');
         }
     };
     const handleSave = async () => {
         if (!user) {
-            alert("You must be logged in to save workflows.");
+            toast.error("You must be logged in to save workflows.");
             return;
         }
 

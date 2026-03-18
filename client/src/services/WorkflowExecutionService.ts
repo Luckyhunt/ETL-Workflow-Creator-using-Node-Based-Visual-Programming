@@ -1,14 +1,15 @@
 import type { Workflow } from "../types";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://etl-workflow-creator-using-node-based.onrender.com';
+
 class WorkflowExecutionService {
   /**
    * Execute a workflow by sending it to the Python backend
    */
   async executeWorkflow(workflow: Workflow): Promise<any> {
     try {
-      console.log("Sending Workflow to Backend:", JSON.stringify(workflow, null, 2));
       
-      const response = await fetch('https://etl-workflow-creator-using-node-based.onrender.com/api/workflow/execute', {
+      const response = await fetch(`${BACKEND_URL}/api/workflow/execute`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -30,8 +31,6 @@ class WorkflowExecutionService {
 
       // STEP 2 & 3: Safe JSON Parsing
       const data = await response.json();
-      console.log("Response type:", typeof data);
-      console.log("Response:", data);
 
       const safeData = typeof data === "string" ? JSON.parse(data) : data;
       
@@ -55,9 +54,8 @@ class WorkflowExecutionService {
         transform_type: transformType,
         params: params
       };
-      console.log("Sending Transformation:", payload);
 
-      const response = await fetch('https://etl-workflow-creator-using-node-based.onrender.com/api/workflow/transform', {
+      const response = await fetch(`${BACKEND_URL}/api/workflow/transform`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,8 +75,6 @@ class WorkflowExecutionService {
       }
 
       const data = await response.json();
-      console.log("Response type:", typeof data);
-      console.log("Response:", data);
 
       const safeData = typeof data === "string" ? JSON.parse(data) : data;
       return safeData;
@@ -103,9 +99,8 @@ class WorkflowExecutionService {
         y_col: yCol,
         title: title || 'Generated Chart'
       };
-      console.log("Sending Graph Request:", payload);
 
-      const response = await fetch('https://etl-workflow-creator-using-node-based.onrender.com/api/graph/generate', {
+      const response = await fetch(`${BACKEND_URL}/api/graph/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -125,8 +120,6 @@ class WorkflowExecutionService {
       }
 
       const dataJson = await response.json();
-      console.log("Response type:", typeof dataJson);
-      console.log("Response:", dataJson);
 
       const safeData = typeof dataJson === "string" ? JSON.parse(dataJson) : dataJson;
       return safeData;

@@ -18,6 +18,7 @@
 - **Real-Time Execution:** Execute Python-based ETL logic in the cloud directly from the visual canvas.
 - **Data Visualization:** Generate graphical visualizations (e.g., charts) directly from output nodes.
 - **Premium UX/UI:** Polished glassmorphism aesthetics, responsive sidebar logic, smooth framer-motion animations, and resilient loading states.
+- **Role-Based Permissions (RBAC):** Three-tier permission system — **Owner** (full access), **Editor** (edit + save, no rename), **Viewer** (read-only). Enforced in both UI and database (Supabase RLS).
 
 ---
 
@@ -62,8 +63,9 @@ The frontend delegates API logic to specific encapsulated services (`workflowApi
 
 ### Process Flows
 - **Creating Workflow:** The user clicks "Create", frontend issues an `INSERT` to the `workflows` table via `workflowApi`, Supabase returns the PK UUID, and the UI redirects to `/playground?id=UUID`.
-- **Saving Workflow:** A debounced save system strips volatile massive data (like `processedData` analytical caches) before converting the nodes/edges into a lightweight JSON schema and updating Supabase via `UPDATE`.
-- **Loading Dashboard:** The dashboard avoids loading massive graph json blobs. It utilizes `getUserWorkflowsMetadata()` to exclusively select the `id`, `name`, and `updated_at` columns, rendering skeleton loaders until resolution.
+- **Saving Workflow:** A debounced save system strips volatile data (`processedData` caches) before a direct `UPDATE` to Supabase. The `updateWorkflow` call skips any pre-fetch SELECT so it works for both owners and editors under RLS.
+- **Loading Dashboard:** The dashboard avoids loading massive JSON blobs. It utilizes `getUserWorkflowsMetadata()` to exclusively select the `id`, `name`, and `updated_at` columns, rendering skeleton loaders until resolved.
+- **Role Resolution:** When a workflow is opened, `getWorkflow()` performs a secondary query on `workflow_shares` to fetch the current user's `sharedRole`. This is passed to `getWorkflowRole()` in `src/utils/workflowPermissions.ts` which resolves the final `owner | editor | viewer` role used to gate all UI actions.
 
 ---
 
@@ -126,8 +128,22 @@ Strict Row Level Security is implemented directly in PostgreSQL to prevent data 
 
 1. **Owner Policy:** 
 `auth.uid() = user_id` ensures a user can only Select, Update, or Delete rows where their explicit token UUID matches the row's `user_id`.
-2. **Shared Access Policy:** 
-Users can `SELECT` workflows if their `auth.jwt() ->> 'email'` matches the `shared_with_email` column in the underlying `workflow_shares` join table.
+2. **Shared SELECT Policy:** 
+Users can `SELECT` workflows if their `auth.jwt() ->> 'email'` matches the `shared_with_email` column in `workflow_shares`.
+3. **Editor UPDATE Policy:** 
+Users with `role = 'editor'` in `workflow_shares` can `UPDATE` the workflow. Required SQL:
+```sql
+CREATE POLICY "Editors can update shared workflows"
+ON workflows FOR UPDATE
+USING (
+  EXISTS (
+    SELECT 1 FROM workflow_shares
+    WHERE workflow_shares.workflow_id = workflows.id
+      AND workflow_shares.shared_with_email = auth.jwt() ->> 'email'
+      AND workflow_shares.role = 'editor'
+  )
+);
+```
 
 ---
 
@@ -203,7 +219,7 @@ NodeFlow is structurally prepared to scale. Here are the immediate future pipeli
 1. **Real-Time Collaboration:** Because the canvas uses a strict React Flow declarative JSON structure, Supabase Realtime (WebSockets) can be attached to the `workflows` table to enable Google Docs-style multi-player node editing.
 2. **Background Job Processing:** Heavy execution requests can be shifted from synchronous API requests mapping to Render, into a queuing system like Celery or BullMQ, responding with a Job ID that the UI polls.
 3. **Workflow Versioning:** By moving `nodes` and `edges` out of the primary `workflows` table and into a `workflow_versions` one-to-many table, users could roll back changes incrementally.
-4. **Role-Based Access Control (RBAC):** Expanding beyond simple emails to Organization structures, providing group-level read/write permissions.
+4. **Role-Based Access Control (RBAC):** Implemented — three-tier `owner/editor/viewer` system with Supabase RLS policies. Future: expand to Organization-level group permissions.
 
 ---
 

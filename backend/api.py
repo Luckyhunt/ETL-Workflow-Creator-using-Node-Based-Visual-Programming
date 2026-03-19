@@ -19,8 +19,24 @@ from data_processor_simple import SimpleDataProcessor, TransformOperation
 import io
 
 
+import numpy as np
+
 app = Flask(__name__)
 CORS(app)  # Enable CORS for communication with React frontend
+
+def sanitize_data(data):
+    """
+    Recursively sanitize data for JSON serialization.
+    Replaces NaN, Infinity, -Infinity with None (null in JSON).
+    """
+    if isinstance(data, dict):
+        return {k: sanitize_data(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_data(i) for i in data]
+    elif isinstance(data, float):
+        if np.isnan(data) or np.isinf(data):
+            return None
+    return data
 
 # Global service instance
 workflow_service = WorkflowService()
@@ -41,7 +57,7 @@ def execute_workflow():
         # Execute the workflow
         result = workflow_service.execute_workflow(workflow_definition)
         
-        return jsonify(result)
+        return jsonify(sanitize_data(result))
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -345,12 +361,12 @@ def apply_single_transform():
             result_id = processor.apply_transformation('temp_input', operation, **params)
             result_df = processor.get_dataframe(result_id)
         
-        return jsonify({
+        return jsonify(sanitize_data({
             'success': True,
             'data': result_df.to_dict('records'),
             'shape': result_df.shape,
             'columns': list(result_df.columns)
-        })
+        }))
 
     except Exception as e:
         print(f"Transform error: {str(e)}")  # Debug log
@@ -380,13 +396,13 @@ def full_preprocess():
         # Apply the simple but accurate preprocessing
         processed_df, summary_report = processor.preprocess_data(df, target_column=target_column)
         
-        return jsonify({
+        return jsonify(sanitize_data({
             'success': True,
             'processed_data': processed_df.to_dict('records'),
             'summary_report': summary_report,
             'shape': processed_df.shape,
             'columns': list(processed_df.columns)
-        })
+        }))
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -438,10 +454,10 @@ def generate_graph():
         
         print(f"[GRAPH] Generated successfully")
         
-        return jsonify({
+        return jsonify(sanitize_data({
             'success': True,
             'graph_url': graph_url
-        })
+        }))
     
     except Exception as e:
         print(f"[GRAPH] Error: {str(e)}")  # Detailed error logging

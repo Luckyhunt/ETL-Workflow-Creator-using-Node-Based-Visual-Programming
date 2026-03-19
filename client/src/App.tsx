@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import './App.css'
 
 // pages
@@ -7,12 +7,19 @@ import Playground from './pages/Playground/Playground'
 import DashboardLayout from './pages/Dashboard/DashboardLayout'
 import Dashboard from './pages/Dashboard/Dashboard'
 import WorkflowsList from './pages/Dashboard/WorkflowsList'
+import Settings from './pages/Dashboard/Settings'
+import ResetPassword from './pages/ResetPassword'
 import ProtectedRoute from './components/ProtectedRoute'
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <Home />
+  },
+  {
+    // Public: password reset page reached via email link
+    path: '/reset-password',
+    element: <ResetPassword />
   },
   {
     path: '/editor',
@@ -56,8 +63,7 @@ const router = createBrowserRouter([
           },
           {
             path: 'settings',
-            // Settings placeholder
-            element: <div>Settings (Coming Soon)</div>
+            element: <Settings />
           }
         ]
       }

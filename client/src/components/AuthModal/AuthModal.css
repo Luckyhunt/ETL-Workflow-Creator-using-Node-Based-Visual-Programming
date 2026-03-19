@@ -192,3 +192,140 @@
         transform: translateY(0) scale(1);
     }
 }
+
+/* ── Password input with show/hide toggle ── */
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper input {
+    width: 100%;
+    padding-right: 44px !important;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--color-text-grey);
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    transition: color 0.2s ease;
+}
+
+.password-toggle:hover {
+    color: var(--color-text-dark);
+}
+
+/* ── Forgot Password link (below password input) ── */
+.auth-forgot-link {
+    background: none;
+    border: none;
+    color: var(--color-accent-1);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: right;
+    transition: opacity 0.2s ease;
+    padding: 0;
+    margin-top: -8px;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.auth-forgot-link:hover {
+    opacity: 0.72;
+}
+
+/* ── Back to Login link ── */
+.auth-modal-back-link {
+    display: block;
+    background: none;
+    border: none;
+    color: var(--color-text-grey);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: color 0.2s ease;
+    padding: 0;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.auth-modal-back-link:hover {
+    color: var(--color-accent-1);
+}
+
+/* ── Loading spinner inside buttons ── */
+.btn-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+}
+
+.btn-spinner--dark {
+    border: 2px solid rgba(82, 69, 229, 0.2);
+    border-top-color: var(--color-accent-1);
+}
+
+/* ── Password Strength Bar ── */
+.strength-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.strength-bars {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+}
+
+.strength-bar-segment {
+    height: 4px;
+    flex: 1;
+    border-radius: 2px;
+    transition: background 0.3s ease;
+}
+
+.strength-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    width: 46px;
+    text-align: right;
+    transition: color 0.3s ease;
+}
+
+/* ── Password Match Indicator ── */
+.password-match-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+.password-match-indicator.match {
+    color: #10b981;
+}
+
+.password-match-indicator.no-match {
+    color: var(--color-delete-red-light);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

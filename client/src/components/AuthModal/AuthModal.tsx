@@ -1,50 +1,77 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './AuthModal.css';
-import { FaGoogle, FaTimes } from 'react-icons/fa';
+import { FaGoogle, FaTimes, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { supabase } from '../../services/supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 interface AuthModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
+type AuthView = 'login' | 'register' | 'forgot-password';
+
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-    const [isLogin, setIsLogin] = useState(true);
+    const [view, setView] = useState<AuthView>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [errorMsg, setErrorMsg] = useState('');
     const navigate = useNavigate();
+
+    const resetForm = () => {
+        setEmail('');
+        setPassword('');
+        setShowPassword(false);
+    };
+
+    const switchView = (nextView: AuthView) => {
+        resetForm();
+        setView(nextView);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setErrorMsg('');
 
         try {
-            if (isLogin) {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
+            if (view === 'login') {
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
+                toast.success('Welcome back!');
                 onClose();
                 navigate('/dashboard');
-            } else {
-                const { error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                });
+            } else if (view === 'register') {
+                const { error } = await supabase.auth.signUp({ email, password });
                 if (error) throw error;
-                // Supabase might require email confirmation depending on settings
-                setErrorMsg('Check your email for the confirmation link!');
+                toast.success('Check your email for the confirmation link!');
+                switchView('login');
             }
         } catch (error: any) {
-            setErrorMsg(error.message);
+            toast.error(error.message || 'An error occurred. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            // Always call the API, but show same message regardless of result
+            // to avoid email enumeration attacks.
+            await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/reset-password`,
+            });
+        } catch {
+            // Silently fail - do not reveal if email exists
+        } finally {
+            setLoading(false);
+            // Always show the same success message
+            toast.success('If that email is registered, a reset link has been sent.');
+            switchView('login');
         }
     };
 
@@ -58,87 +85,153 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             });
             if (error) throw error;
         } catch (error: any) {
-            setErrorMsg(error.message);
+            toast.error(error.message || 'Google sign-in failed.');
         }
     };
 
     return (
         <AnimatePresence>
             {isOpen && (
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="auth-modal-overlay" 
+                    className="auth-modal-overlay"
                     onClick={onClose}
                 >
-                    <motion.div 
+                    <motion.div
                         initial={{ scale: 0.95, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 20 }}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        className="auth-modal-content" 
+                        className="auth-modal-content"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button className="auth-modal-close" onClick={onClose}>
                             <FaTimes />
                         </button>
-                        
-                        <div className="auth-modal-header">
-                            <h2>{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
-                            <p>{isLogin ? 'Sign in to orchestrate your data.' : 'Join to build powerful ETL workflows.'}</p>
-                        </div>
 
-                <div className="auth-modal-tabs">
-                    <button 
-                        className={`auth-modal-tab ${isLogin ? 'active' : ''}`}
-                        onClick={() => { setIsLogin(true); setErrorMsg(''); }}
-                    >
-                        Login
-                    </button>
-                    <button 
-                        className={`auth-modal-tab ${!isLogin ? 'active' : ''}`}
-                        onClick={() => { setIsLogin(false); setErrorMsg(''); }}
-                    >
-                        Register
-                    </button>
-                </div>
+                        <AnimatePresence mode="wait">
+                            {/* ======================== FORGOT PASSWORD VIEW ======================== */}
+                            {view === 'forgot-password' && (
+                                <motion.div
+                                    key="forgot"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <div className="auth-modal-header">
+                                        <h2>Forgot Password</h2>
+                                        <p>Enter your email and we'll send you a reset link.</p>
+                                    </div>
+                                    <form className="auth-modal-form" onSubmit={handleForgotPassword}>
+                                        <div className="form-group">
+                                            <label>Email</label>
+                                            <input
+                                                type="email"
+                                                placeholder="you@company.com"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                required
+                                                autoFocus
+                                            />
+                                        </div>
+                                        <button type="submit" className="auth-modal-submit" disabled={loading}>
+                                            {loading ? <span className="btn-spinner" /> : 'Send Reset Link'}
+                                        </button>
+                                    </form>
+                                    <button className="auth-modal-back-link" onClick={() => switchView('login')}>
+                                        ← Back to Login
+                                    </button>
+                                </motion.div>
+                            )}
 
-                {errorMsg && <div className="auth-modal-error" style={{ color: 'var(--color-delete-red-light)', marginBottom: '16px', fontSize: '0.9rem', textAlign: 'center' }}>{errorMsg}</div>}
+                            {/* ======================== LOGIN / REGISTER VIEW ======================== */}
+                            {(view === 'login' || view === 'register') && (
+                                <motion.div
+                                    key="auth"
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <div className="auth-modal-header">
+                                        <h2>{view === 'login' ? 'Welcome Back' : 'Create Account'}</h2>
+                                        <p>{view === 'login' ? 'Sign in to orchestrate your data.' : 'Join to build powerful ETL workflows.'}</p>
+                                    </div>
 
-                <form className="auth-modal-form" onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label>Email</label>
-                        <input 
-                            type="email" 
-                            placeholder="you@company.com" 
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Password</label>
-                        <input 
-                            type="password" 
-                            placeholder="••••••••" 
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <button type="submit" className="auth-modal-submit" disabled={loading}>
-                        {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
-                    </button>
-                </form>
+                                    <div className="auth-modal-tabs">
+                                        <button
+                                            className={`auth-modal-tab ${view === 'login' ? 'active' : ''}`}
+                                            onClick={() => switchView('login')}
+                                        >
+                                            Login
+                                        </button>
+                                        <button
+                                            className={`auth-modal-tab ${view === 'register' ? 'active' : ''}`}
+                                            onClick={() => switchView('register')}
+                                        >
+                                            Register
+                                        </button>
+                                    </div>
 
-                <div className="auth-modal-divider">
-                    <span>or continue with</span>
-                </div>
+                                    <form className="auth-modal-form" onSubmit={handleSubmit}>
+                                        <div className="form-group">
+                                            <label>Email</label>
+                                            <input
+                                                type="email"
+                                                placeholder="you@company.com"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Password</label>
+                                            <div className="password-input-wrapper">
+                                                <input
+                                                    type={showPassword ? 'text' : 'password'}
+                                                    placeholder="••••••••"
+                                                    value={password}
+                                                    onChange={(e) => setPassword(e.target.value)}
+                                                    required
+                                                    minLength={6}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="password-toggle"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    aria-label="Toggle password visibility"
+                                                >
+                                                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {view === 'login' && (
+                                            <button
+                                                type="button"
+                                                className="auth-forgot-link"
+                                                onClick={() => switchView('forgot-password')}
+                                            >
+                                                Forgot Password?
+                                            </button>
+                                        )}
+                                        <button type="submit" className="auth-modal-submit" disabled={loading}>
+                                            {loading ? <span className="btn-spinner" /> : (view === 'login' ? 'Sign In' : 'Sign Up')}
+                                        </button>
+                                    </form>
 
-                        <button className="auth-modal-google" onClick={handleGoogleLogin}>
-                            <FaGoogle /> Google
-                        </button>
+                                    <div className="auth-modal-divider">
+                                        <span>or continue with</span>
+                                    </div>
+
+                                    <button className="auth-modal-google" onClick={handleGoogleLogin}>
+                                        <FaGoogle /> Google
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </motion.div>
                 </motion.div>
             )}

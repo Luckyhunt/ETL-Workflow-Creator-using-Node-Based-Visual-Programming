@@ -93,7 +93,7 @@ sequenceDiagram
     Canvas->>State: Registers Edge {source: 1, target: 2}
     User->>State: Clicks "Run Pipeline"
     
-    rect rgb(240, 240, 255)
+    rect rgba(245, 255, 54, 1)
     note right of State: Execution Phase
     State->>State: Compiles DAG & Strips UI Metadata
     State->>Engine: POST /execute (DAG JSON Payload)

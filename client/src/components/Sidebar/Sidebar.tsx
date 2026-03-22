@@ -22,6 +22,8 @@ import { useSearchParams } from "react-router-dom";
 import ShareModal from "../ShareModal/ShareModal";
 import { rolePermissions } from '../../utils/workflowPermissions';
 import type { WorkflowRole } from '../../utils/workflowPermissions';
+import { useResponsive } from '../../hooks/useResponsive';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'private'; role?: WorkflowRole }) => {
 
@@ -44,6 +46,13 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
     const workflowId = searchParams.get('id');
     const { user } = useAuth();
     const { workflow, addNode, deleteDraft, shareWorkflow, updateNode, setWorkflowName, setWorkflowState } = useWorkflow()
+    const { isMobile } = useResponsive();
+    const { confirm } = useConfirm();
+
+    // Auto-close sidebar on mobile on initial load
+    useEffect(() => {
+        if (isMobile) setOpen(false);
+    }, [isMobile]);
     
     // RBAC: Derive permissions from the resolved role prop
     const canSave = mode === 'public' ? false : rolePermissions.canSave(role);
@@ -114,6 +123,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
             },
         }
         addNode(newInputNode)
+        if (isMobile) setOpen(false);
     }
 
     const createNewTransformNode = () => {
@@ -128,6 +138,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
             }
         }
         addNode(newTransformNode)
+        if (isMobile) setOpen(false);
     }
 
     const createNewOutputNode = () => {
@@ -149,6 +160,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
             }
         }
         addNode(newOutputNode)
+        if (isMobile) setOpen(false);
     }
 
     const executeWorkflow = async () => {
@@ -351,6 +363,14 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
 
     return (
         <>
+        {/* Mobile Scrim Overlay */}
+        {isMobile && open && (
+            <div 
+                className="sidebar-scrim open" 
+                onClick={() => setOpen(false)}
+            />
+        )}
+        
         <div 
             className={open ? "sidebar" : "sidebar close"}
         >
@@ -359,7 +379,9 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                     {open ? "<<" : ">>"}
                 </button>
             </div>
-            <Link to={user ? "/dashboard" : "/"}>
+            
+            <div className="sidebar-scrollable-area" style={{ height: '100vh', overflowY: 'auto', paddingBottom: '20px' }}>
+                <Link to={user ? "/dashboard" : "/"}>
                 <div className="sidebar-logo logo-container">
                     <img src={Logo} alt="" />
                     <span className="sidebar-logo-name">NodeFlow</span>
@@ -590,7 +612,13 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                         {mode === 'private' && (
                             <li className="management-item destructive">
                                 <button onClick={async () => {
-                                    if (!window.confirm("Delete this draft?")) return;
+                                    const isConfirmed = await confirm({
+                                        title: "Delete Draft",
+                                        message: "Are you sure you want to delete this draft? This action cannot be undone.",
+                                        confirmText: "Delete",
+                                        isDestructive: true
+                                    });
+                                    if (!isConfirmed) return;
                                     try {
                                         await deleteDraft();
                                         navigate("/");
@@ -604,8 +632,14 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                         )}
                         {mode === 'public' && (
                             <li className="management-item destructive">
-                                <button onClick={() => {
-                                    if (window.confirm("Reset playground? All unsaved changes will be lost.")) {
+                                <button onClick={async () => {
+                                    const isConfirmed = await confirm({
+                                        title: "Reset Playground",
+                                        message: "Reset playground? All unsaved changes will be lost.",
+                                        confirmText: "Reset",
+                                        isDestructive: true
+                                    });
+                                    if (isConfirmed) {
                                         window.location.reload();
                                     }
                                 }}>
@@ -615,6 +649,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                         )}
                     </ul>
                 </div>
+            </div>
             </div>
 
         </div>

@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useWorkflow } from "../../contexts/useWorkflow"
+import { useResponsive } from "../../hooks/useResponsive"
+import { VirtualizedLogPanel } from "../VirtualizedLogPanel/VirtualizedLogPanel"
 import "./Previewer.css"
 
 // Helper function to parse CSV lines properly handling quoted fields
@@ -45,6 +47,14 @@ const Previewer = () => {
     const isResizing = useRef(false)
     
     const { workflow } = useWorkflow()
+    const { isMobile } = useResponsive()
+    
+    // Auto-open on mobile when a node is selected
+    useEffect(() => {
+        if (isMobile && workflow.selectedNode) {
+            setOpen(true)
+        }
+    }, [workflow.selectedNode, isMobile])
     
     const renderTableFromCSV = (csvContent: string) => {
         if (!csvContent) return <div>No content available</div>;
@@ -134,10 +144,24 @@ const Previewer = () => {
     }, [])
 
     return (
+        <>
+        {/* Mobile Scrim */}
+        {isMobile && open && (
+            <div className="previewer-scrim open" onClick={() => setOpen(false)} />
+        )}
+        
         <div 
             className={open ? "previewer" : "previewer close"}
-            style={{ width: open ? `${width}px` : "0px" }}
+            style={isMobile ? undefined : { width: open ? `${width}px` : "0px" }}
         >
+            {/* Mobile Drag Handle (Visual only for now, real snap in future) */}
+            {isMobile && (
+                <div 
+                    className="previewer-drag-handle" 
+                    onClick={() => setOpen(!open)}
+                />
+            )}
+
             {/* Resize Handle */}
             {open && (
                 <div
@@ -158,6 +182,11 @@ const Previewer = () => {
             <div className="previewer-title">Previewer</div>
 
             <div className="previewer-body">
+                {/* Always show logs at the top if there is an active job */}
+                <div style={{ marginBottom: '24px' }}>
+                    <VirtualizedLogPanel />
+                </div>
+
                 {workflow.selectedNode ? (
                     <div className="previewer-node-details">
                         <h3 className="previewer-node-title">Node Details</h3>
@@ -275,6 +304,7 @@ const Previewer = () => {
                 )}
             </div>
         </div>
+        </>
     )
 }
 

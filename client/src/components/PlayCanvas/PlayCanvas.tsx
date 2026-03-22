@@ -15,6 +15,10 @@ const PlayCanvas = ({ canEdit = true }: { canEdit?: boolean }) => {
         setGrabbing(true)
     }
 
+    const handleTouchStart = () => {
+        setGrabbing(true)
+    }
+
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
 
         if (workflow.activeSourceNode) {
@@ -61,8 +65,67 @@ const PlayCanvas = ({ canEdit = true }: { canEdit?: boolean }) => {
 
     }
 
+    const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+        if (workflow.activeSourceNode) {
+            setMousePos({ x: e.touches[0].clientX, y: e.touches[0].clientY })
+            return
+        }
+
+        if (isGrabbing) {
+            const board = e.currentTarget as HTMLDivElement
+            const docWidth = document.documentElement.clientWidth
+            const docHeight = document.documentElement.clientHeight
+            
+            // Calculate movement from previous position or use a simpler drag approach
+            // For robust touch dragging, keeping track of lastTouch is better, but
+            // for now sticking to the existing logic structure adapted for touch.
+            // Using a simple workaround for the lack of movementX/Y on touches:
+            const movementX = e.touches[0].clientX - (board as any).lastTouchX || 0;
+            const movementY = e.touches[0].clientY - (board as any).lastTouchY || 0;
+            
+            ;(board as any).lastTouchX = e.touches[0].clientX;
+            ;(board as any).lastTouchY = e.touches[0].clientY;
+
+            if (board.offsetLeft <= 0) {
+                board.style.left = `${movementX + board.offsetLeft}px`
+            } else {
+                board.style.left = "0px"
+            }
+
+            if (board.offsetLeft >= docWidth - 2000) {
+                board.style.left = `${movementX + board.offsetLeft}px`
+            } else {
+                board.style.left = `${docWidth - 2000}px`
+            }
+
+            if (board.offsetTop <= 0) {
+                board.style.top = `${movementY + board.offsetTop}px`
+            } else {
+                board.style.top = "0px"
+            }
+
+            if (board.offsetTop > docHeight - 2000) {
+                board.style.top = `${movementY + board.offsetTop}px`
+            } else {
+                board.style.top = `${docHeight - 2000}px`
+            }
+        }
+    }
+
     const handleMouseUp = () => {
         setGrabbing(false)
+
+        if (workflow.activeSourceNode) {
+            setActiveSourceNode(null)
+        }
+    }
+
+    const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+        setGrabbing(false)
+        const board = e.currentTarget as HTMLDivElement;
+        // Reset the tracking coords
+        ;(board as any).lastTouchX = undefined;
+        ;(board as any).lastTouchY = undefined;
 
         if (workflow.activeSourceNode) {
             setActiveSourceNode(null)
@@ -84,6 +147,9 @@ const PlayCanvas = ({ canEdit = true }: { canEdit?: boolean }) => {
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
             >
                 <svg className="playcanvas-svg-layer" width="2000" height="2000">
                     {

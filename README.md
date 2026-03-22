@@ -44,12 +44,70 @@ graph TD
     Supabase -->|Session Token| Vercel
 ```
 
-### Data Flow
-1. **Vercel (Frontend):** Serves the Vite React application. Manages local canvas state and UI.
-2. **Supabase (DB/Auth):** Handles user sessions via JWTs. Stores JSON definitions of Nodes and Edges. Uses Row Level Security (RLS) to aggressively isolate tenant data.
-3. **Render (Backend):** A stateless execution engine that accepts complete graph payloads from the frontend, compiles the graph order, executes the ETL scripts in isolated memory, and returns the output JSON.
+### 1. Frontend & Backend Separation Architecture
+Unlike tightly coupled monolithic apps, NodeFlow completely separates UI orchestration from processing power.
 
----
+```mermaid
+graph LR
+    subgraph "Client Tier (Vercel / Browser)"
+        UI[React 19 Canvas]
+        State[Workflow Context Layer]
+        API[API Orchestrator]
+    end
+
+    subgraph "Persistence Tier (Supabase)"
+        Auth[JWT & Identity]
+        DB[(PostgreSQL JSON Storage)]
+        RLS[Row Level Security]
+    end
+
+    subgraph "Compute Tier (Render)"
+        Engine[Python FastAPI/Express]
+        Pandas[Pandas/Data Execution]
+    end
+
+    UI -->|Updates| State
+    State -->|Saves Graph| DB
+    State -->|Triggers Execution| API
+    API -->|Payload POST| Engine
+    Engine -->|Data Manipulation| Pandas
+    Pandas -->|Serialized Output| API
+    
+    Auth .->|Gates Access| DB
+```
+
+### 2. Playground Execution & Processing Flow
+How the interactive playground specifically processes data operations:
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Canvas as React Flow Playground
+    participant State as Workflow Context
+    participant Engine as Execution Backend (Render)
+    participant Output as Visualizer / Previewer
+
+    User->>Canvas: Drags "Input File" Node
+    Canvas->>State: Registers Node {id: 1, type: input}
+    User->>Canvas: Connects "Filter" Node to Input
+    Canvas->>State: Registers Edge {source: 1, target: 2}
+    User->>State: Clicks "Run Pipeline"
+    
+    rect rgb(240, 240, 255)
+    note right of State: Execution Phase
+    State->>State: Compiles DAG & Strips UI Metadata
+    State->>Engine: POST /execute (DAG JSON Payload)
+    Engine->>Engine: Topologically sort graph
+    Engine->>Engine: Executes Node 1 (Load Data)
+    Engine->>Engine: Executes Node 2 (Apply Filters)
+    Engine-->>State: 200 OK (Transformed Data JSON)
+    end
+    
+    State->>Output: Injects resulting Data into UI Nodes
+    Output->>User: Displays Data Grids & Logs
+```
+
+### 3. Data Flow Strategy
 
 ## ⚙️ Low Level Design (LLD)
 

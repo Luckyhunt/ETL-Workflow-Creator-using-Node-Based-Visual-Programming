@@ -1,69 +1,80 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
+import { FloatingJobWidget } from './components/FloatingJobWidget/FloatingJobWidget';
 import './App.css'
 
-// pages
-import Home from './pages/Home/Home'
-import Playground from './pages/Playground/Playground'
-import DashboardLayout from './pages/Dashboard/DashboardLayout'
-import Dashboard from './pages/Dashboard/Dashboard'
-import WorkflowsList from './pages/Dashboard/WorkflowsList'
-import Settings from './pages/Dashboard/Settings'
-import ResetPassword from './pages/ResetPassword'
-import ProtectedRoute from './components/ProtectedRoute'
+// Lazy load pages for performance optimization
+const Home = lazy(() => import('./pages/Home/Home'));
+const Playground = lazy(() => import('./pages/Playground/Playground'));
+const DashboardLayout = lazy(() => import('./pages/Dashboard/DashboardLayout'));
+const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
+const WorkflowsList = lazy(() => import('./pages/Dashboard/WorkflowsList'));
+const Settings = lazy(() => import('./pages/Dashboard/Settings'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'));
+
+// Loading fallback
+const PageLoader = () => (
+    <div style={{ display: 'grid', placeItems: 'center', height: '100vh', width: '100vw', background: 'var(--bg-1)' }}>
+        <div className="spinner" style={{ 
+            width: '40px', height: '40px', border: '3px solid var(--color-border-grey)', 
+            borderTopColor: 'var(--color-accent-1)', borderRadius: '50%', animation: 'spin 1s linear infinite' 
+        }} />
+    </div>
+);
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <Home />
+    element: <Suspense fallback={<PageLoader />}><Home /></Suspense>
   },
   {
-    // Public: password reset page reached via email link
     path: '/reset-password',
-    element: <ResetPassword />
+    element: <Suspense fallback={<PageLoader />}><ResetPassword /></Suspense>
   },
   {
     path: '/editor',
-    element: <Playground mode="public" />
+    element: <Suspense fallback={<PageLoader />}><Playground mode="public" /></Suspense>
   },
   {
     path: '/editor/:id',
-    element: <ProtectedRoute />,
+    element: <Suspense fallback={<PageLoader />}><ProtectedRoute /></Suspense>,
     children: [
       {
         path: '',
-        element: <Playground mode="private" />
+        element: <Suspense fallback={<PageLoader />}><Playground mode="private" /></Suspense>
       }
     ]
   },
   {
     path: '/playground',
-    element: <ProtectedRoute />,
+    element: <Suspense fallback={<PageLoader />}><ProtectedRoute /></Suspense>,
     children: [
       {
         path: '',
-        element: <Playground mode="private" />
+        element: <Suspense fallback={<PageLoader />}><Playground mode="private" /></Suspense>
       }
     ]
   },
   {
     path: '/dashboard',
-    element: <ProtectedRoute />,
+    element: <Suspense fallback={<PageLoader />}><ProtectedRoute /></Suspense>,
     children: [
       {
         path: '',
-        element: <DashboardLayout />,
+        element: <Suspense fallback={<PageLoader />}><DashboardLayout /></Suspense>,
         children: [
           {
             path: '',
-            element: <Dashboard />
+            element: <Suspense fallback={<PageLoader />}><Dashboard /></Suspense>
           },
           {
             path: 'workflows',
-            element: <WorkflowsList />
+            element: <Suspense fallback={<PageLoader />}><WorkflowsList /></Suspense>
           },
           {
             path: 'settings',
-            element: <Settings />
+            element: <Suspense fallback={<PageLoader />}><Settings /></Suspense>
           }
         ]
       }
@@ -90,6 +101,7 @@ function App() {
 					},
 				}}
 			/>
+            <FloatingJobWidget />
 		</div>
 	)
 }

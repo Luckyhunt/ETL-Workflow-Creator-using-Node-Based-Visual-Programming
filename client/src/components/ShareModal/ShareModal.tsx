@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { workflowApi } from '../../services/workflowApi';
 import { FaTimes, FaLink, FaUserPlus, FaTrash } from 'react-icons/fa';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 interface ShareModalProps {
     workflowId: string;
@@ -13,6 +14,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ workflowId, onClose }) => {
     const [shares, setShares] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [feedback, setFeedback] = useState<{ message: string, type: 'success' | 'error' | 'warning' } | null>(null);
+    const { confirm } = useConfirm();
 
     useEffect(() => {
         loadShares();
@@ -62,7 +64,13 @@ const ShareModal: React.FC<ShareModalProps> = ({ workflowId, onClose }) => {
     };
 
     const handleRemoveShare = async (shareId: string) => {
-        if (!window.confirm("Remove this user's access?")) return;
+        const isConfirmed = await confirm({
+            title: "Remove Access",
+            message: "Are you sure you want to remove this user's access?",
+            confirmText: "Remove",
+            isDestructive: true
+        });
+        if (!isConfirmed) return;
         
         try {
             await workflowApi.removeShare(shareId);

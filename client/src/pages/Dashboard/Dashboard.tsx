@@ -108,25 +108,21 @@ const Dashboard: React.FC = () => {
                                 className="workflow-listItem" 
                                 onClick={() => navigate(`/playground?id=${wf.id}`)}
                                 variants={itemVariants}
-                                whileHover={{ scale: 1.01, boxShadow: 'var(--shadow-md)' }}
-                                style={{
-                                    background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid var(--color-border-grey)',
-                                    marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
-                                    transition: 'all 0.2s'
-                                }}
                             >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--color-bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent-1)' }}>
+                                <div className="workflow-item-content">
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--color-bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent-1)', flexShrink: 0 }}>
                                         <FaFolderOpen />
                                     </div>
-                                    <div>
-                                        <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--color-text-dark)' }}>{wf.name} <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#64748b', marginLeft: '6px', fontWeight: 'normal' }}>Owned</span></h4>
+                                    <div style={{ overflow: 'hidden' }}>
+                                        <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--color-text-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{wf.name} <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#64748b', marginLeft: '6px', fontWeight: 'normal' }}>Owned</span></h4>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--color-text-grey)' }}>
                                             <FaClock /> {new Date(wf.updated_at).toLocaleDateString()}
                                         </div>
                                     </div>
                                 </div>
-                                <button style={{ border: 'none', background: 'transparent', color: 'var(--color-accent-1)', fontWeight: 'bold', cursor: 'pointer' }}>Open</button>
+                                <div className="workflow-item-actions">
+                                    <button style={{ border: '1px solid var(--color-accent-1)', background: 'transparent', color: 'var(--color-accent-1)' }}>Open</button>
+                                </div>
                             </motion.div>
                         ))}
                     </div>
@@ -158,19 +154,13 @@ const Dashboard: React.FC = () => {
                                 className="workflow-listItem" 
                                 onClick={() => navigate(`/playground?id=${wf.id}`)}
                                 variants={itemVariants}
-                                whileHover={{ scale: 1.01, boxShadow: 'var(--shadow-md)' }}
-                                style={{
-                                    background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid var(--color-border-grey)',
-                                    marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
-                                    transition: 'all 0.2s'
-                                }}
                             >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
+                                <div className="workflow-item-content">
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
                                         <FaShareAlt />
                                     </div>
-                                    <div>
-                                        <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--color-text-dark)' }}>
+                                    <div style={{ overflow: 'hidden' }}>
+                                        <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--color-text-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {wf.name}
                                             <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', background: wf.role === 'editor' ? '#dcfce7' : '#e0e7ff', color: wf.role === 'editor' ? '#16a34a' : '#4f46e5', marginLeft: '6px', fontWeight: 'bold', textTransform: 'uppercase' }}>
                                                 {wf.role}
@@ -181,7 +171,9 @@ const Dashboard: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <button style={{ border: 'none', background: 'transparent', color: '#d97706', fontWeight: 'bold', cursor: 'pointer' }}>Open</button>
+                                <div className="workflow-item-actions">
+                                    <button style={{ border: '1px solid #d97706', background: 'transparent', color: '#d97706' }}>Open</button>
+                                </div>
                             </motion.div>
                         ))}
                     </div>

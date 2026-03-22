@@ -1,9 +1,11 @@
 import "./Playground.css"
 
-import Sidebar from "../../components/Sidebar/Sidebar"
-import PlayCanvas from "../../components/PlayCanvas/PlayCanvas"
-import Previewer from "../../components/Previewer/Previewer"
+import Sidebar from "../../components/Sidebar/Sidebar";
+import PlayCanvas from "../../components/PlayCanvas/PlayCanvas";
+import MobileDagLayout from "../../components/MobileDagLayout/MobileDagLayout";
+import Previewer from "../../components/Previewer/Previewer";
 import { useEffect, useState } from "react"
+import { useResponsive } from "../../hooks/useResponsive"
 import toast from 'react-hot-toast'
 import { useSearchParams } from "react-router-dom"
 import { workflowApi } from "../../services/workflowApi"
@@ -23,6 +25,8 @@ const Playground = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
   const [role, setRole] = useState<WorkflowRole>(
     mode === 'private' && !workflowId ? 'owner' : 'viewer'
   );
+  
+  const { isMobile } = useResponsive();
 
   // ─── Core Fetch Logic ─────────────────────────────────────────
   const loadWorkflow = async (skipIfLoaded = true) => {
@@ -132,9 +136,12 @@ const Playground = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
               >Login to Save</button>
             </div>
           )}
-          <div style={{ flex: 1, position: 'relative' }}>
-            {/* RBAC: pass canEdit flag — viewer cannot interact */}
-            <PlayCanvas canEdit={mode === 'public' || role !== 'viewer'} />
+          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+            {isMobile ? (
+                <MobileDagLayout />
+            ) : (
+                <PlayCanvas canEdit={mode === 'public' || role !== 'viewer'} />
+            )}
           </div>
         </div>
 

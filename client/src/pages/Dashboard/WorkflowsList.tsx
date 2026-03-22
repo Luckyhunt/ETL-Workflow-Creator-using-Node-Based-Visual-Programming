@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { FaFolderOpen, FaClock, FaTrash, FaPlus, FaShareAlt } from 'react-icons/fa';
+import ShareModal from "../../components/ShareModal/ShareModal";
+import { useConfirm } from "../../contexts/ConfirmContext";
 import { workflowApi } from '../../services/workflowApi';
 import type { WorkflowData } from '../../services/workflowApi';
 
@@ -34,6 +36,9 @@ const WorkflowsList: React.FC = () => {
     const [sharedWorkflows, setSharedWorkflows] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'owned' | 'shared'>('owned');
+    const [shareTarget, setShareTarget] = useState<any>(null);
+
+    const { confirm } = useConfirm();
 
     const fetchWorkflows = async () => {
         try {
@@ -58,8 +63,17 @@ const WorkflowsList: React.FC = () => {
 
     const handleDelete = async (e: React.MouseEvent, id?: string) => {
         e.stopPropagation();
+        
         if (!id) return;
-        if (window.confirm("Are you sure you want to delete this workflow?")) {
+
+        const isConfirmed = await confirm({
+            title: "Delete Workflow",
+            message: "Are you sure you want to delete this workflow? This action cannot be undone.",
+            confirmText: "Delete",
+            isDestructive: true
+        });
+
+        if (isConfirmed) {
             try {
                 await workflowApi.deleteWorkflow(id);
                 setOwnedWorkflows(ownedWorkflows.filter(w => w.id !== id));
@@ -185,37 +199,33 @@ const WorkflowsList: React.FC = () => {
                             exit="hidden"
                             variants={containerVariants}
                             style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+                            className="recent-workflows-list"
                         >
                             {ownedWorkflows.map(wf => (
                                 <motion.div 
                                     key={wf.id} 
+                                    className="workflow-listItem" 
                                     onClick={() => navigate(`/playground?id=${wf.id}`)}
                                     variants={itemVariants}
-                                    whileHover={{ scale: 1.01, boxShadow: 'var(--shadow-md)' }}
-                                    style={{
-                                        background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border-grey)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                    }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                        <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--color-bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent-1)', fontSize: '1.5rem' }}>
-                                            <FaFolderOpen />
-                                        </div>
-                                        <div>
-                                            <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: 'var(--color-text-dark)' }}>{wf.name}</h3>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: 'var(--color-text-grey)' }}>
-                                                <FaClock /> Last updated: {wf.updated_at ? new Date(wf.updated_at).toLocaleString() : 'Never'}
-                                            </div>
+                                <div className="workflow-item-content">
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--color-bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent-1)', fontSize: '1.5rem', flexShrink: 0 }}>
+                                        <FaFolderOpen />
+                                    </div>
+                                    <div style={{ overflow: 'hidden' }}>
+                                        <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: 'var(--color-text-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{wf.name}</h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: 'var(--color-text-grey)' }}>
+                                            <FaClock /> Last updated: {wf.updated_at ? new Date(wf.updated_at).toLocaleString() : 'Never'}
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '12px' }}>
-                                        <button style={{ padding: '8px 16px', border: '1px solid var(--color-accent-1)', background: 'transparent', color: 'var(--color-accent-1)', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-                                            Open Editor
-                                        </button>
-                                        <button 
-                                            onClick={(e) => handleDelete(e, wf.id)}
-                                            style={{ padding: '8px 12px', border: '1px solid #ff4d4f', background: 'transparent', color: '#ff4d4f', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                </div>
+                                <div className="workflow-item-actions">
+                                    <button style={{ border: '1px solid var(--color-accent-1)', background: 'transparent', color: 'var(--color-accent-1)' }}>
+                                        Open Editor
+                                    </button>
+                                    <button 
+                                        onClick={(e) => handleDelete(e, wf.id)}
+                                        style={{ border: '1px solid #ff4d4f', background: 'transparent', color: '#ff4d4f' }}
                                             title="Delete Workflow"
                                         >
                                             <FaTrash />
@@ -253,37 +263,32 @@ const WorkflowsList: React.FC = () => {
                             {sharedWorkflows.map(wf => (
                                 <motion.div 
                                     key={wf.id} 
+                                    className="workflow-listItem" 
                                     onClick={() => navigate(`/playground?id=${wf.id}`)}
                                     variants={itemVariants}
-                                    whileHover={{ scale: 1.01, boxShadow: 'var(--shadow-md)' }}
-                                    style={{
-                                        background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--color-border-grey)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                    }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                        <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', fontSize: '1.5rem' }}>
-                                            <FaShareAlt />
-                                        </div>
-                                        <div>
-                                            <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: 'var(--color-text-dark)' }}>
-                                                {wf.name}
-                                                <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', background: wf.role === 'editor' ? '#dcfce7' : '#e0e7ff', color: wf.role === 'editor' ? '#16a34a' : '#4f46e5', marginLeft: '12px', fontWeight: 'bold', textTransform: 'uppercase', verticalAlign: 'middle' }}>
-                                                    {wf.role}
-                                                </span>
-                                            </h3>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: 'var(--color-text-grey)' }}>
-                                                <FaClock /> Last updated: {wf.updated_at ? new Date(wf.updated_at).toLocaleString() : 'Never'}
-                                            </div>
+                                <div className="workflow-item-content">
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', fontSize: '1.5rem', flexShrink: 0 }}>
+                                        <FaShareAlt />
+                                    </div>
+                                    <div style={{ overflow: 'hidden' }}>
+                                        <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: 'var(--color-text-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {wf.name}
+                                            <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', background: wf.role === 'editor' ? '#dcfce7' : '#e0e7ff', color: wf.role === 'editor' ? '#16a34a' : '#4f46e5', marginLeft: '12px', fontWeight: 'bold', textTransform: 'uppercase', verticalAlign: 'middle' }}>
+                                                {wf.role}
+                                            </span>
+                                        </h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: 'var(--color-text-grey)' }}>
+                                            <FaClock /> Last updated: {wf.updated_at ? new Date(wf.updated_at).toLocaleString() : 'Never'}
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '12px' }}>
-                                        <button style={{ padding: '8px 16px', border: '1px solid #d97706', background: 'transparent', color: '#d97706', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-                                            Open Shared Editor
-                                        </button>
-                                    </div>
-                                </motion.div>
+                                </div>
+                                <div className="workflow-item-actions">
+                                    <button style={{ border: '1px solid #d97706', background: 'transparent', color: '#d97706' }}>
+                                        Open Shared Editor
+                                    </button>
+                                </div>
+                            </motion.div>
                             ))}
                         </motion.div>
                     ) : (

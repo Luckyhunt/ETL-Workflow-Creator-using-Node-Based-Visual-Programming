@@ -1,0 +1,262 @@
+.mobile-dag-layout-wrap {
+    width: 100%;
+    height: 100vh;
+    overflow-y: auto;
+    background: var(--bg-1, #fbfcfe);
+    position: relative;
+    padding-bottom: 120px;
+}
+
+.mobile-dag-map {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    min-height: 100%;
+}
+
+.mobile-dag-empty {
+    color: var(--color-text-grey);
+    margin-top: 40px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.mobile-dag-row-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.mobile-dag-level-label {
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: var(--color-text-grey);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+.mobile-dag-row {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+    flex-wrap: wrap; 
+}
+
+.mobile-dag-node-block {
+    background: white;
+    border: 1px solid var(--color-border-grey);
+    border-radius: 12px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 90px;
+    max-width: 140px;
+    flex: 1;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-dag-node-block:active {
+    transform: scale(0.95);
+}
+
+.mobile-dag-node-block.input { border-top: 4px solid #3b82f6; }
+.mobile-dag-node-block.transform { border-top: 4px solid #10b981; }
+.mobile-dag-node-block.output { border-top: 4px solid #8b5cf6; }
+
+.node-block-icon {
+    font-size: 1.5rem;
+    color: var(--color-text-dark);
+}
+
+.node-block-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-dark);
+    text-align: center;
+    word-break: break-word;
+}
+
+.mobile-dag-flow-indicator {
+    color: var(--color-text-grey);
+    font-size: 1.2rem;
+    margin-top: 16px;
+    font-weight: bold;
+    opacity: 0.5;
+}
+
+/* Modals / Bottom Sheets */
+.mobile-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 1000;
+}
+
+.mobile-editor-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-radius: 24px 24px 0 0;
+    z-index: 1001;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+}
+
+.sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--color-border-grey);
+    flex-shrink: 0;
+}
+
+.sheet-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--color-text-dark);
+    letter-spacing: 0.5px;
+}
+
+.sheet-close-btn {
+    background: var(--color-bg-2);
+    border: none;
+    font-size: 1.5rem;
+    color: var(--color-text-grey);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.sheet-content {
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    flex: 1;
+    min-height: 0;
+}
+
+.sheet-inner-editor {
+    background: var(--color-bg-1);
+    border-radius: 12px;
+    padding-bottom: 20px;
+    border: 1px solid var(--color-border-grey);
+    flex-shrink: 0;
+}
+
+.sheet-inner-editor > div {
+    /* Since nodes natively don't have padding outside wrappers, add some buffer */
+    padding: 16px; 
+}
+
+
+.sheet-quick-connect {
+    background: var(--color-bg-2);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--color-border-grey);
+    flex-shrink: 0;
+}
+
+.sheet-section-title {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--color-text-dark);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+.sheet-connected-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.sheet-tag {
+    background: white;
+    border: 1px solid var(--color-border-grey);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text-dark);
+    font-weight: 500;
+}
+
+.sheet-tag button {
+    background: none;
+    border: none;
+    color: var(--color-error, #ef4444);
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0;
+}
+
+.sheet-select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border-grey);
+    background: white;
+    font-family: inherit;
+    font-size: 0.95rem;
+}
+
+.sheet-delete-section {
+    padding-top: 16px;
+    border-top: 1px dashed var(--color-border-grey);
+    flex-shrink: 0;
+}
+
+.sheet-delete-node-btn {
+    width: 100%;
+    padding: 16px;
+    background: #fef2f2;
+    color: #ef4444;
+    border: 1px solid #fca5a5;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.sheet-delete-node-btn:active {
+    background: #fee2e2;
+}
+
+/* Ensure node inputs fit in sheet */
+.sheet-content .inputnode-file-details {
+    max-width: none !important;
+}
+
+.mobile-editor-sheet select,
+.mobile-editor-sheet input {
+    max-width: 100%;
+    text-overflow: ellipsis;
+}

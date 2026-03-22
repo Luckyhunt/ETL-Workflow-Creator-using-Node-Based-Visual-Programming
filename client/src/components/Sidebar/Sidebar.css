@@ -15,9 +15,21 @@
 
 
 .sidebar-logo-name {
-
     color: var(--color-text-dark);
+    font-weight: bold;
+    font-size: 1.2rem;
+}
 
+.sidebar-logo.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sidebar-logo.logo-container img {
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
 }
 
 
@@ -446,7 +458,64 @@
 
 
 .management-item.destructive button:hover .icon {
-
     color: #ff0000;
+}
 
+@media (max-width: 767px) {
+    .sidebar {
+        width: min(300px, 90vw);
+        z-index: 300;
+        /* Removed overflow-y: auto here to prevent clipping */
+    }
+
+    .sidebar.close {
+        left: calc(-1 * min(300px, 90vw));
+    }
+
+    .sidebar .toggle-btn {
+        /* Protrude more visibly as a hamburger bar on mobile */
+        right: -52px;
+        top: 12px;
+        min-width: var(--touch-target, 44px);
+        min-height: var(--touch-target, 44px);
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--color-bg-1);
+        color: var(--color-text-dark);
+        border: 1px solid var(--color-border-grey);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .sidebar .toggle-btn:hover {
+        background: var(--color-bg-2);
+        color: var(--color-accent-1);
+    }
+
+    .sidebar-part-node-item button {
+        padding: 4px 0;
+        min-height: var(--touch-target, 44px);
+    }
+
+    .sidebar-part-node-item button .icon {
+        width: 52px;
+        height: 52px;
+    }
+
+    /* Scrim background when open on mobile */
+    .sidebar-scrim {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(2px);
+        z-index: 299;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    .sidebar-scrim.open {
+        opacity: 1;
+        pointer-events: auto;
+    }
 }

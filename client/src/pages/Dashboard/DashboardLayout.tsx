@@ -1,14 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import './DashboardLayout.css';
 import Logo from '../../images/logo.svg';
 
-import { FaHome, FaPlus, FaFolderOpen, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaHome, FaPlus, FaFolderOpen, FaCog, FaSignOutAlt, FaBars } from 'react-icons/fa';
+import { useResponsive } from '../../hooks/useResponsive';
 
 const DashboardLayout: React.FC = () => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const { isMobile } = useResponsive();
+
+    // Close drawer when route changes
+    React.useEffect(() => {
+        setDrawerOpen(false);
+    }, [window.location.pathname]);
 
     const handleLogout = async () => {
         await signOut();
@@ -17,8 +25,13 @@ const DashboardLayout: React.FC = () => {
 
     return (
         <div className="dashboard-layout">
+            {/* Mobile Drawer Scrim */}
+            {isMobile && drawerOpen && (
+                <div className="drawer-scrim" onClick={() => setDrawerOpen(false)} />
+            )}
+
             {/* Sidebar Navigation */}
-            <aside className="dashboard-sidebar">
+            <aside className={`dashboard-sidebar ${isMobile && drawerOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <img src={Logo} alt="Logo" className="sidebar-logo" />
                     <h2>NodeFlow</h2>
@@ -53,6 +66,15 @@ const DashboardLayout: React.FC = () => {
             {/* Main Content Area */}
             <main className="dashboard-main">
                 <header className="dashboard-topbar">
+                    {isMobile && (
+                        <button
+                            className="hamburger-btn"
+                            aria-label="Open menu"
+                            onClick={() => setDrawerOpen(true)}
+                        >
+                            <FaBars />
+                        </button>
+                    )}
                     <h1>Dashboard</h1>
                     {/* Add global search or notifications here later */}
                 </header>

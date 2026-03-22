@@ -9,12 +9,13 @@
 /* Sidebar */
 .dashboard-sidebar {
     width: 260px;
-    background: var(--color-bg-1);
+    background: var(--bg-1, #fbfcfe);
     border-right: 1px solid var(--color-border-grey);
     display: flex;
     flex-direction: column;
     padding: 24px;
-    transition: all 0.3s ease;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 200;
 }
 
 .sidebar-header {
@@ -154,14 +155,15 @@
 
 .dashboard-topbar {
     height: 80px;
-    background: var(--color-bg-1);
+    background: var(--bg-1, #fbfcfe);
     border-bottom: 1px solid var(--color-border-grey);
     display: flex;
     align-items: center;
-    padding: 0 40px;
+    padding: 0 clamp(16px, 4vw, 40px);
     position: sticky;
     top: 0;
     z-index: 10;
+    gap: 16px;
 }
 
 .dashboard-topbar h1 {
@@ -170,9 +172,93 @@
 }
 
 .dashboard-content {
-    padding: 40px;
+    padding: clamp(16px, 4vw, 40px);
     flex: 1;
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
+}
+
+/* Responsive Dashboard Layout */
+
+/* Mobile Drawer Scrim */
+.drawer-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 199;
+}
+
+.hamburger-btn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--color-text-dark);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 8px;
+    margin-left: -8px; /* Optical alignment */
+    border-radius: 8px;
+}
+
+.hamburger-btn:active {
+    background: var(--color-bg-2);
+}
+
+@media (max-width: 767px) {
+    .dashboard-layout {
+        flex-direction: column;
+    }
+
+    .hamburger-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .dashboard-sidebar {
+        position: fixed;
+        inset: 0;
+        width: 280px;
+        max-width: 85vw;
+        height: 100vh; /* Takes full height on mobile */
+        transform: translateX(-100%);
+    }
+
+    .dashboard-sidebar.open {
+        transform: translateX(0);
+    }
+}
+
+/* Tablet Icon Rail */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .dashboard-sidebar {
+        width: 80px;
+        padding: 24px 12px;
+    }
+
+    .sidebar-header h2,
+    .nav-item span,
+    .user-email,
+    .logout-btn span {
+        display: none;
+    }
+
+    .nav-item {
+        justify-content: center;
+        padding: 12px;
+    }
+    
+    .sidebar-logo {
+        margin: 0 auto;
+    }
+
+    .user-avatar {
+        margin: 0 auto;
+    }
+    
+    .logout-btn {
+        justify-content: center;
+    }
 }

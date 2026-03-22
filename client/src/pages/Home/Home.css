@@ -204,7 +204,9 @@
 
     font-size: 1.5rem;
 
-    width: 900px;
+    width: 100%;
+    
+    max-width: 900px;
 
     color: var(--color-text-grey);
 
@@ -334,7 +336,9 @@
 
 .home-node-info-content {
 
-    width: 500px;
+    width: 100%;
+    
+    max-width: 500px;
 
     color: var(--color-text-grey);
 
@@ -460,4 +464,88 @@
 .launch-btn:active {
     transform: translateY(2px) scale(0.98);
     box-shadow: 0 4px 10px var(--color-accent-1-light);
+}
+
+@media (max-width: 1024px) {
+    .home-hero-title {
+        font-size: 3.5rem;
+    }
+    .home-hero-subtitle {
+        max-width: 600px;
+        font-size: 1.25rem;
+    }
+    .home-node-info {
+        grid-template-columns: 1fr;
+        padding: 50px 32px;
+    }
+    .home-node-info-right {
+        padding: 50px 0;
+        display: flex;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .home-navbar {
+        padding: 0 20px;
+    }
+    .home-hero {
+        padding: 120px 20px 40px 20px;
+        height: auto;
+        min-height: 80vh;
+    }
+    .home-hero-title {
+        font-size: 2.2rem;
+    }
+    .home-hero-subtitle {
+        font-size: 1rem;
+    }
+    .home-node-info {
+        padding: 40px 20px;
+    }
+    .home-node-info-left {
+        padding: 0;
+    }
+    .home-node-info-left-title {
+        font-size: 1.8rem;
+    }
+    .home-node-info-content {
+        font-size: 0.95rem;
+    }
+    .home-node-info-part {
+        gap: 16px;
+    }
+    .home-hero-btns {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        gap: 12px;
+    }
+    .home-hero-btns a,
+    .home-hero-btns button {
+        width: 100%;
+        margin: 0;
+        font-size: 1.1rem;
+        justify-content: center;
+    }
+    .navbar-right-btn .blue {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    .navbar-logo-name {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .home-node-info-flow-node {
+        width: 100%;
+    }
+    .home-node-info-right-flow {
+        width: 100%;
+        padding: 20px;
+    }
+    .home-hero-title {
+        font-size: 2rem;
+    }
 }

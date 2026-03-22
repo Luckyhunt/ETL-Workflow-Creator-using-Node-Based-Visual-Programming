@@ -1,43 +1,47 @@
 .dashboard-home {
     display: flex;
     flex-direction: column;
-    gap: 40px;
+    gap: clamp(24px, 5vw, 40px);
 }
 
 .welcome-banner {
-    padding: 32px;
+    padding: clamp(20px, 4vw, 32px);
     background: var(--glass-bg);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--glass-border);
     border-radius: 24px;
     box-shadow: var(--glass-shadow);
-    margin-bottom: 24px;
+    margin-bottom: clamp(16px, 3vw, 24px);
 }
 
 .welcome-banner h1 {
-    font-size: 2rem;
+    font-size: var(--text-h1, clamp(1.4rem, 4vw, 2rem));
     color: var(--color-text-dark);
     margin-bottom: 8px;
 }
 
 .welcome-banner p {
     color: var(--color-text-grey);
-    font-size: 1.1rem;
+    font-size: var(--text-body, clamp(0.875rem, 2vw, 1.1rem));
 }
 
 .dashboard-actions {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 24px;
+    /* Responsive auto-fit grid, minimum 280px wide cards avoiding overflow on tiny screens */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: clamp(16px, 3vw, 24px);
 }
 
 .action-card {
     background: white;
     border: 1px solid var(--color-border-grey);
     border-radius: 20px;
-    padding: 24px;
+    padding: clamp(16px, 3vw, 24px);
     display: flex;
+    /* On very small screens, stack icon and text */
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     gap: 20px;
     cursor: pointer;
@@ -49,6 +53,14 @@
     transform: translateY(-4px);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
     border-color: var(--color-accent-1-light);
+}
+
+@media (max-width: 479px) {
+    .action-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
 }
 
 .action-icon {
@@ -92,7 +104,7 @@
 }
 
 .section-header h2 {
-    font-size: 1.4rem;
+    font-size: var(--text-h2, clamp(1.1rem, 3vw, 1.4rem));
     color: var(--color-text-dark);
 }
 
@@ -152,4 +164,65 @@
 
 .empty-create-btn:hover {
     background: var(--color-accent-2);
+}
+
+/* Workflow Lists Responsive */
+.recent-workflows-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+    gap: 16px;
+}
+
+.workflow-listItem {
+    background: white;
+    padding: clamp(16px, 4vw, 20px);
+    border-radius: 12px;
+    border: 1px solid var(--color-border-grey);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.workflow-listItem:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-accent-1-light);
+}
+
+.workflow-item-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.workflow-item-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: auto;
+    width: 100%;
+}
+
+.workflow-item-actions button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    min-width: var(--touch-target, 44px);
+    min-height: var(--touch-target, 44px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+@media (max-width: 479px) {
+    .workflow-item-actions {
+        flex-direction: column;
+    }
+    .workflow-item-actions button {
+        width: 100%;
+    }
 }

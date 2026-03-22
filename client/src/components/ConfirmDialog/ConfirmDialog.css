@@ -1,0 +1,113 @@
+.confirm-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 9999;
+}
+
+.confirm-dialog {
+    background: var(--bg-1, #ffffff);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+}
+
+.confirm-dialog.desktop {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 16px;
+    border: 1px solid var(--color-border-grey, #e5e7eb);
+}
+
+.confirm-dialog.mobile {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    border-radius: 24px 24px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+.confirm-header {
+    padding: 24px 24px 12px 24px;
+}
+
+.confirm-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--color-text-dark, #1f2937);
+}
+
+.confirm-body {
+    padding: 0 24px;
+}
+
+.confirm-body p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--color-text-grey, #4b5563);
+    line-height: 1.5;
+}
+
+.confirm-actions {
+    padding: 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.confirm-actions button {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.btn-cancel {
+    background: transparent;
+    border: 1px solid var(--color-border-grey, #d1d5db);
+    color: var(--color-text-dark, #374151);
+}
+
+.btn-cancel:hover {
+    background: var(--bg-2, #f3f4f6);
+}
+
+.btn-confirm.destructive {
+    background: var(--color-error, #ef4444);
+    border: 1px solid var(--color-error, #ef4444);
+    color: white;
+}
+
+.btn-confirm.destructive:hover {
+    background: #dc2626;
+}
+
+.btn-confirm.primary {
+    background: var(--color-accent-1, #4f46e5);
+    border: 1px solid var(--color-accent-1, #4f46e5);
+    color: white;
+}
+
+.btn-confirm.primary:hover {
+    background: #4338ca;
+}
+
+/* Mobile full width buttons */
+@media (max-width: 767px) {
+    .confirm-actions {
+        flex-direction: column-reverse;
+    }
+    .confirm-actions button {
+        width: 100%;
+        padding: 12px;
+    }
+}

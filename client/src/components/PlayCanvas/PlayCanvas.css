@@ -26,9 +26,7 @@
 
     background-size: 30px 30px;
 
-    background-image: 
-
-        radial-gradient(circle, var(--color-text-dark) 1px, transparent 1px);
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.15) 2px, transparent 2px);
 
     cursor: grab;
 

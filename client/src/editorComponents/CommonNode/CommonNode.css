@@ -1,7 +1,8 @@
 .common-node {
     position: absolute;
     user-select: none;
-    border: 1px solid var(--color-border-grey);
+    border: 1px solid var(--color-text-dark);
+    /* High contrast white border */
     border-radius: 4px;
     background: var(--color-bg-1);
     width: 300px;
@@ -13,8 +14,8 @@
 }
 
 .common-node.selected {
-    border-color: #6366f1;
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), 0 0 0 1px #6366f1;
+    border-color: #3b82f6;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 0 1px #3b82f6;
 }
 
 .common-node-header {
@@ -70,18 +71,21 @@
 .common-node-port {
     position: absolute;
     top: 20px;
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: var(--color-bg-1);
-    border: 2px solid var(--color-border-grey);
+    border: 2px solid var(--color-text-dark);
+    /* Changed to white */
     z-index: 10;
     transition: all 0.2s;
+    cursor: crosshair;
 }
 
 .common-node-port:hover {
-    border-color: var(--color-text-dark);
-    background: var(--color-text-dark);
+    border-color: #3b82f6;
+    background: #3b82f6;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
 }
 
 .common-node-port.input-port {
@@ -119,7 +123,8 @@
     font-size: 1.05rem;
 }
 
-.common-node-input:focus, .common-node-select:focus {
+.common-node-input:focus,
+.common-node-select:focus {
     border-color: var(--color-text-dark);
 }
 
@@ -162,7 +167,8 @@
     0% {
         opacity: 0;
         transform: scale(0.95);
-    } 
+    }
+
     100% {
         opacity: 1;
         transform: scale(1);

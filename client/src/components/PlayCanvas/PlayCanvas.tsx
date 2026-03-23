@@ -3,13 +3,15 @@ import "./PlayCanvas.css"
 import { useWorkflow } from "../../contexts/useWorkflow"
 import CommonNode from "../../editorComponents/CommonNode/CommonNode"
 import Edge from "../../editorComponents/Edge/Edge"
+import { v4 as uuidv4 } from "uuid";
 
 const PlayCanvas = ({ canEdit = true }: { canEdit?: boolean }) => {
 
     const [isGrabbing, setGrabbing] = useState<boolean>(false)
-    const { workflow, setActiveSourceNode, setSelectedNode } = useWorkflow()
+    const { workflow, setActiveSourceNode, setSelectedNode, addEdge } = useWorkflow()
 
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const [snapTargetId, setSnapTargetId] = useState<string | null>(null);
 
     const handleMouseDown = () => {
         setGrabbing(true)
@@ -19,10 +21,36 @@ const PlayCanvas = ({ canEdit = true }: { canEdit?: boolean }) => {
         setGrabbing(true)
     }
 
+    const processProximitySnap = (canvasX: number, canvasY: number) => {
+        if (!workflow.activeSourceNode) return;
+        let nearestDist = 50; // Snap radius in px
+        let nearestId = null;
+
+        for (const node of workflow.definition.nodes) {
+            if (node._id === workflow.activeSourceNode._id) continue;
+            if (node.type === 'input') continue; // target can't be input
+
+            // Absolute coordinate of the target's input port
+            const portX = node.position.x;
+            const portY = node.position.y + 25;
+
+            const dist = Math.hypot(canvasX - portX, canvasY - portY);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearestId = node._id;
+            }
+        }
+        setSnapTargetId(nearestId);
+    }
+
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
 
         if (workflow.activeSourceNode) {
-            setMousePos({ x: e.clientX, y: e.clientY })
+            const board = e.currentTarget;
+            const canvasX = e.clientX - board.offsetLeft;
+            const canvasY = e.clientY - board.offsetTop;
+            setMousePos({ x: canvasX, y: canvasY })
+            processProximitySnap(canvasX, canvasY);
             return
         }
 
@@ -67,7 +95,11 @@ const PlayCanvas = ({ canEdit = true }: { canEdit?: boolean }) => {
 
     const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
         if (workflow.activeSourceNode) {
-            setMousePos({ x: e.touches[0].clientX, y: e.touches[0].clientY })
+            const board = e.currentTarget;
+            const canvasX = e.touches[0].clientX - board.offsetLeft;
+            const canvasY = e.touches[0].clientY - board.offsetTop;
+            setMousePos({ x: canvasX, y: canvasY })
+            processProximitySnap(canvasX, canvasY);
             return
         }
 
@@ -112,11 +144,33 @@ const PlayCanvas = ({ canEdit = true }: { canEdit?: boolean }) => {
         }
     }
 
+    const finalizeConnection = () => {
+        if (workflow.activeSourceNode && snapTargetId) {
+            const targetNode = workflow.definition.nodes.find(n => n._id === snapTargetId);
+            const sourceNode = workflow.activeSourceNode;
+            if (targetNode && sourceNode.type !== 'output') {
+                const alreadyConnected = workflow.definition.edges.some(edge => 
+                    (typeof edge.source === 'string' ? edge.source : edge.source._id) === sourceNode._id && 
+                    (typeof edge.target === 'string' ? edge.target : edge.target._id) === targetNode._id
+                );
+                if (!alreadyConnected) {
+                    addEdge({
+                        _id: uuidv4(),
+                        source: sourceNode,
+                        target: targetNode
+                    });
+                }
+            }
+        }
+        setActiveSourceNode(null);
+        setSnapTargetId(null);
+    }
+
     const handleMouseUp = () => {
         setGrabbing(false)
 
         if (workflow.activeSourceNode) {
-            setActiveSourceNode(null)
+            finalizeConnection();
         }
     }
 
@@ -128,14 +182,22 @@ const PlayCanvas = ({ canEdit = true }: { canEdit?: boolean }) => {
         ;(board as any).lastTouchY = undefined;
 
         if (workflow.activeSourceNode) {
-            setActiveSourceNode(null)
+             finalizeConnection();
         }
     }
 
     const sourceX = workflow.activeSourceNode ? workflow.activeSourceNode.position.x + 300 : 0
     const sourceY = workflow.activeSourceNode ? workflow.activeSourceNode.position.y + 25 : 0
     const curvature = 75
-    const pathData = `M ${sourceX} ${sourceY} C ${sourceX + curvature} ${sourceY}, ${mousePos.x - curvature} ${mousePos.y}, ${mousePos.x} ${mousePos.y}`
+    
+    // Snapping logic for path rendering
+    const snappedNode = snapTargetId ? workflow.definition.nodes.find(n => n._id === snapTargetId) : null;
+    
+    // Adding 25y for the visual input port level mapping
+    const finalX = snappedNode ? snappedNode.position.x : mousePos.x;
+    const finalY = snappedNode ? snappedNode.position.y + 25 : mousePos.y;
+
+    const pathData = `M ${sourceX} ${sourceY} C ${sourceX + curvature} ${sourceY}, ${finalX - curvature} ${finalY}, ${finalX} ${finalY}`
 
     return (
         <div
@@ -172,19 +234,16 @@ const PlayCanvas = ({ canEdit = true }: { canEdit?: boolean }) => {
                     {
                         // Render active node
                         workflow.activeSourceNode && (
-                            // <line
-                            //     x1={workflow.activeSourceNode.position.x + 300}
-                            //     y1={workflow.activeSourceNode.position.y + 20}
-                            //     x2={mousePos.x}
-                            //     y2={mousePos.y}
-                            //     stroke="#ccc"
-                            //     strokeDasharray="5,5"
-                            // />
                             <path
                                 d={pathData}
                                 fill="none"
-                                stroke="black"
-                                strokeDasharray="5,5"
+                                stroke={snapTargetId ? "var(--color-accent-1)" : "var(--color-border-grey)"}
+                                strokeWidth={snapTargetId ? "3" : "2"}
+                                strokeDasharray={snapTargetId ? "none" : "5,5"}
+                                style={{
+                                    filter: snapTargetId ? 'drop-shadow(0 0 8px var(--color-accent-1))' : 'none',
+                                    transition: 'stroke 0.2s, strokeWidth 0.2s, filter 0.2s'
+                                }}
                             />
                         )
                     }

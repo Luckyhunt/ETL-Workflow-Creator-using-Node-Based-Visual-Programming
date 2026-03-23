@@ -75,9 +75,9 @@ const CommonNode: FC<NodeProps> = ({ node }) => {
                 return;
             }
             
-            // Don't allow input -> input
-            if (workflow.activeSourceNode.type === 'input' && node.type === 'input') {
-                console.log('Cannot connect input to input');
+            // Don't allow connections TO an input node
+            if (node.type === 'input') {
+                console.log('Cannot connect to an input node');
                 return;
             }
             
@@ -109,6 +109,19 @@ const CommonNode: FC<NodeProps> = ({ node }) => {
     const handleNodeSelection = (e: React.MouseEvent | React.TouchEvent) => {
         e.stopPropagation();
         setSelectedNode(node)
+    }
+
+    const handleNodeMouseUp = (e: React.MouseEvent) => {
+        if (workflow.activeSourceNode && workflow.activeSourceNode._id !== node._id) {
+            handlePortMouseUp(e);
+        }
+    }
+    
+    const handleNodeTouchEnd = (e: React.TouchEvent) => {
+        if (workflow.activeSourceNode && workflow.activeSourceNode._id !== node._id) {
+            handlePortTouchEnd(e);
+        }
+        handleNodeSelection(e);
     }
 
     useEffect(() => {
@@ -184,7 +197,8 @@ const CommonNode: FC<NodeProps> = ({ node }) => {
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
             onClick={handleNodeSelection}
-            onTouchEnd={handleNodeSelection}
+            onMouseUp={handleNodeMouseUp}
+            onTouchEnd={handleNodeTouchEnd}
         >
             {/* Node ports */}
             {/* Input ports - allow receiving connections (left side) */}

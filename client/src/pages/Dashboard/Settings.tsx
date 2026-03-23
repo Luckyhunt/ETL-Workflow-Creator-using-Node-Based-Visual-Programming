@@ -14,10 +14,10 @@ const getPasswordStrength = (password: string): { score: number; label: string; 
     if (/[0-9]/.test(password)) score++;
     if (/[^A-Za-z0-9]/.test(password)) score++;
 
-    if (score <= 1) return { score, label: 'Weak', color: 'var(--color-delete-red-light)' };
-    if (score === 2) return { score, label: 'Fair', color: '#f59e0b' };
-    if (score === 3) return { score, label: 'Good', color: '#3b82f6' };
-    return { score, label: 'Strong', color: '#10b981' };
+    if (score <= 1) return { score, label: 'Weak', color: '#555555' };
+    if (score === 2) return { score, label: 'Fair', color: '#888888' };
+    if (score === 3) return { score, label: 'Good', color: '#bbbbbb' };
+    return { score, label: 'Strong', color: '#ffffff' };
 };
 
 const Settings: React.FC = () => {

@@ -126,13 +126,13 @@ const WorkflowsList: React.FC = () => {
                 <h1 style={{ margin: 0, fontSize: '1.8rem', color: 'var(--color-text-dark)' }}>My Workflows</h1>
                 <motion.button 
                     onClick={() => navigate('/playground')}
-                    whileHover={{ scale: 1.05, background: 'var(--color-accent-2)' }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02, background: 'transparent', color: 'var(--color-text-dark)' }}
+                    whileTap={{ scale: 0.98 }}
                     style={{ 
                         display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', 
-                        background: 'linear-gradient(135deg, var(--color-accent-1), var(--color-accent-2))', 
-                        color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', 
-                        fontWeight: '600', boxShadow: 'var(--shadow-md)', transition: 'box-shadow 0.2s' 
+                        background: 'var(--color-text-dark)', 
+                        color: 'var(--color-bg-1)', border: '1px solid var(--color-text-dark)', borderRadius: '4px', cursor: 'pointer', 
+                        fontWeight: '600', transition: 'all 0.2s' 
                     }}
                 >
                     <FaPlus /> New Workflow
@@ -209,7 +209,7 @@ const WorkflowsList: React.FC = () => {
                                     variants={itemVariants}
                                 >
                                 <div className="workflow-item-content">
-                                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--color-bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent-1)', fontSize: '1.5rem', flexShrink: 0 }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '4px', background: 'var(--color-bg-3)', border: '1px solid var(--color-border-grey)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-dark)', fontSize: '1.5rem', flexShrink: 0 }}>
                                         <FaFolderOpen />
                                     </div>
                                     <div style={{ overflow: 'hidden' }}>
@@ -220,7 +220,7 @@ const WorkflowsList: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="workflow-item-actions">
-                                    <button style={{ border: '1px solid var(--color-accent-1)', background: 'transparent', color: 'var(--color-accent-1)' }}>
+                                    <button>
                                         Open Editor
                                     </button>
                                     <button 
@@ -238,14 +238,14 @@ const WorkflowsList: React.FC = () => {
                         <motion.div 
                             key="owned-empty"
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            style={{ textAlign: 'center', padding: '60px 20px', background: 'white', border: '1px dashed var(--color-border-grey)', borderRadius: '16px' }}
+                            style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--color-bg-2)', border: '1px dashed var(--color-border-grey)', borderRadius: '4px' }}
                         >
                             <div style={{ fontSize: '3rem', color: 'var(--color-text-grey)', opacity: 0.5, marginBottom: '16px' }}><FaFolderOpen /></div>
                             <h3 style={{ color: 'var(--color-text-dark)', marginBottom: '8px' }}>No workflows found</h3>
                             <p style={{ color: 'var(--color-text-grey)', marginBottom: '24px' }}>It looks like you haven't saved any workflows yet.</p>
                             <button 
                                 onClick={() => navigate('/playground')}
-                                style={{ padding: '12px 24px', background: 'var(--color-accent-1)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem' }}
+                                style={{ padding: '10px 24px', background: 'var(--color-text-dark)', color: 'var(--color-bg-1)', border: '1px solid var(--color-text-dark)', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '1rem' }}
                             >
                                 Create your first workflow
                             </button>
@@ -268,13 +268,13 @@ const WorkflowsList: React.FC = () => {
                                     variants={itemVariants}
                                 >
                                 <div className="workflow-item-content">
-                                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', fontSize: '1.5rem', flexShrink: 0 }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '4px', background: 'var(--color-bg-3)', border: '1px solid var(--color-border-grey)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-dark)', fontSize: '1.5rem', flexShrink: 0 }}>
                                         <FaShareAlt />
                                     </div>
                                     <div style={{ overflow: 'hidden' }}>
                                         <h3 style={{ margin: '0 0 6px 0', fontSize: '1.2rem', color: 'var(--color-text-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {wf.name}
-                                            <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', background: wf.role === 'editor' ? '#dcfce7' : '#e0e7ff', color: wf.role === 'editor' ? '#16a34a' : '#4f46e5', marginLeft: '12px', fontWeight: 'bold', textTransform: 'uppercase', verticalAlign: 'middle' }}>
+                                            <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: 'var(--color-bg-3)', color: 'var(--color-text-grey)', border: '1px solid var(--color-border-grey)', marginLeft: '12px', fontWeight: 'bold', textTransform: 'uppercase', verticalAlign: 'middle' }}>
                                                 {wf.role}
                                             </span>
                                         </h3>
@@ -284,7 +284,7 @@ const WorkflowsList: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="workflow-item-actions">
-                                    <button style={{ border: '1px solid #d97706', background: 'transparent', color: '#d97706' }}>
+                                    <button>
                                         Open Shared Editor
                                     </button>
                                 </div>
@@ -295,11 +295,11 @@ const WorkflowsList: React.FC = () => {
                         <motion.div 
                             key="shared-empty"
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            style={{ textAlign: 'center', padding: '60px 20px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '16px' }}
+                            style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--color-bg-2)', border: '1px dashed var(--color-border-grey)', borderRadius: '4px' }}
                         >
-                            <div style={{ fontSize: '3rem', color: '#94a3b8', opacity: 0.5, marginBottom: '16px' }}><FaShareAlt /></div>
+                            <div style={{ fontSize: '3rem', color: 'var(--color-border-grey)', opacity: 0.5, marginBottom: '16px' }}><FaShareAlt /></div>
                             <h3 style={{ color: 'var(--color-text-dark)', marginBottom: '8px' }}>Nothing shared yet</h3>
-                            <p style={{ color: '#64748b', marginBottom: '24px' }}>Workflows that others share with your email will appear here.</p>
+                            <p style={{ color: 'var(--color-text-grey)', marginBottom: '24px' }}>Workflows that others share with your email will appear here.</p>
                         </motion.div>
                     )
                 )}

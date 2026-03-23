@@ -4,24 +4,24 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(15, 23, 42, 0.4);
-    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn 0.2s ease;
 }
 
 .auth-modal-content {
     background: var(--color-bg-1);
     width: 100%;
     max-width: 420px;
-    border-radius: 24px;
+    border-radius: 4px;
     padding: 32px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px var(--color-border-grey);
+    border: 1px solid var(--color-border-grey);
     position: relative;
-    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .auth-modal-close {
@@ -49,6 +49,8 @@
     font-size: 1.8rem;
     color: var(--color-text-dark);
     margin-bottom: 8px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
 .auth-modal-header p {
@@ -59,7 +61,8 @@
 .auth-modal-tabs {
     display: flex;
     background: var(--color-bg-2);
-    border-radius: 12px;
+    border: 1px solid var(--color-border-grey);
+    border-radius: 4px;
     padding: 4px;
     margin-bottom: 24px;
 }
@@ -71,15 +74,14 @@
     padding: 10px 0;
     font-weight: 600;
     color: var(--color-text-grey);
-    border-radius: 10px;
+    border-radius: 2px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .auth-modal-tab.active {
-    background: white;
-    color: var(--color-accent-1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    background: var(--color-text-dark);
+    color: var(--color-bg-1);
 }
 
 .auth-modal-form {
@@ -102,9 +104,10 @@
 
 .form-group input {
     padding: 12px 16px;
-    border-radius: 12px;
+    border-radius: 4px;
     border: 1px solid var(--color-border-grey);
     background: var(--color-bg-2);
+    color: var(--color-text-dark);
     font-family: "Plus Jakarta Sans", sans-serif;
     font-size: 1rem;
     transition: all 0.2s ease;
@@ -112,27 +115,31 @@
 }
 
 .form-group input:focus {
-    border-color: var(--color-accent-1);
-    box-shadow: 0 0 0 3px var(--color-accent-1-light);
-    background: white;
+    border-color: var(--color-text-dark);
+    background: var(--color-bg-1);
 }
 
 .auth-modal-submit {
     margin-top: 8px;
     padding: 14px;
-    border-radius: 12px;
-    border: none;
-    background: linear-gradient(20deg, var(--color-accent-1), var(--color-accent-2));
-    color: white;
+    border-radius: 4px;
+    border: 1px solid var(--color-text-dark);
+    background: var(--color-text-dark);
+    color: var(--color-bg-1);
     font-weight: 700;
     font-size: 1rem;
     cursor: pointer;
-    transition: transform 0.1s ease, box-shadow 0.2s ease;
+    transition: all 0.2s ease;
 }
 
-.auth-modal-submit:hover {
-    box-shadow: 0 8px 20px rgba(82, 69, 229, 0.3);
-    transform: translateY(-2px);
+.auth-modal-submit:hover:not(:disabled) {
+    background: transparent;
+    color: var(--color-text-dark);
+}
+
+.auth-modal-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .auth-modal-divider {
@@ -158,9 +165,9 @@
 .auth-modal-google {
     width: 100%;
     padding: 12px;
-    border-radius: 12px;
+    border-radius: 4px;
     border: 1px solid var(--color-border-grey);
-    background: white;
+    background: var(--color-bg-2);
     color: var(--color-text-dark);
     font-weight: 600;
     font-size: 1rem;
@@ -173,7 +180,7 @@
 }
 
 .auth-modal-google:hover {
-    background: var(--color-bg-2);
+    background: var(--color-bg-3);
     border-color: var(--color-text-grey);
 }
 
@@ -185,11 +192,11 @@
 @keyframes slideUp {
     from { 
         opacity: 0;
-        transform: translateY(20px) scale(0.95);
+        transform: translateY(10px);
     }
     to { 
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(0);
     }
 }
 
@@ -227,7 +234,7 @@
 .auth-forgot-link {
     background: none;
     border: none;
-    color: var(--color-accent-1);
+    color: var(--color-text-grey);
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
@@ -239,7 +246,7 @@
 }
 
 .auth-forgot-link:hover {
-    opacity: 0.72;
+    color: var(--color-text-dark);
 }
 
 /* ── Back to Login link ── */
@@ -258,7 +265,7 @@
 }
 
 .auth-modal-back-link:hover {
-    color: var(--color-accent-1);
+    color: var(--color-text-dark);
 }
 
 /* ── Loading spinner inside buttons ── */
@@ -266,63 +273,16 @@
     display: inline-block;
     width: 18px;
     height: 18px;
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    border-top-color: white;
+    border: 2px solid var(--color-border-grey);
+    border-top-color: var(--color-bg-1);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
     vertical-align: middle;
 }
 
 .btn-spinner--dark {
-    border: 2px solid rgba(82, 69, 229, 0.2);
-    border-top-color: var(--color-accent-1);
-}
-
-/* ── Password Strength Bar ── */
-.strength-bar-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 6px;
-}
-
-.strength-bars {
-    display: flex;
-    gap: 4px;
-    flex: 1;
-}
-
-.strength-bar-segment {
-    height: 4px;
-    flex: 1;
-    border-radius: 2px;
-    transition: background 0.3s ease;
-}
-
-.strength-label {
-    font-size: 0.78rem;
-    font-weight: 700;
-    width: 46px;
-    text-align: right;
-    transition: color 0.3s ease;
-}
-
-/* ── Password Match Indicator ── */
-.password-match-indicator {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    margin-top: 6px;
-}
-
-.password-match-indicator.match {
-    color: #10b981;
-}
-
-.password-match-indicator.no-match {
-    color: var(--color-delete-red-light);
+    border: 2px solid var(--color-border-grey);
+    border-top-color: var(--color-text-dark);
 }
 
 @keyframes spin {

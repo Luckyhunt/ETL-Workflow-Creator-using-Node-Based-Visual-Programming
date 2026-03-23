@@ -56,7 +56,7 @@ const Dashboard: React.FC = () => {
             variants={containerVariants}
         >
             <motion.div className="welcome-banner" variants={itemVariants}>
-                <h1>Welcome back, <span className="linear-gradient">{user?.email?.split('@')[0]}</span></h1>
+                <h1>Welcome back, <span style={{ color: "var(--color-text-dark)" }}>{user?.email?.split('@')[0]}</span></h1>
                 <p>Ready to orchestrate some data today?</p>
             </motion.div>
 
@@ -110,18 +110,18 @@ const Dashboard: React.FC = () => {
                                 variants={itemVariants}
                             >
                                 <div className="workflow-item-content">
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--color-bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent-1)', flexShrink: 0 }}>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '4px', background: 'var(--color-bg-3)', border: '1px solid var(--color-border-grey)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-dark)', flexShrink: 0 }}>
                                         <FaFolderOpen />
                                     </div>
                                     <div style={{ overflow: 'hidden' }}>
-                                        <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--color-text-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{wf.name} <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#64748b', marginLeft: '6px', fontWeight: 'normal' }}>Owned</span></h4>
+                                        <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--color-text-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{wf.name} <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: 'var(--color-bg-3)', color: 'var(--color-text-grey)', border: '1px solid var(--color-border-grey)', marginLeft: '6px', fontWeight: 'normal' }}>Owned</span></h4>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--color-text-grey)' }}>
                                             <FaClock /> {new Date(wf.updated_at).toLocaleDateString()}
                                         </div>
                                     </div>
                                 </div>
                                 <div className="workflow-item-actions">
-                                    <button style={{ border: '1px solid var(--color-accent-1)', background: 'transparent', color: 'var(--color-accent-1)' }}>Open</button>
+                                    <button>Open</button>
                                 </div>
                             </motion.div>
                         ))}
@@ -156,13 +156,13 @@ const Dashboard: React.FC = () => {
                                 variants={itemVariants}
                             >
                                 <div className="workflow-item-content">
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', flexShrink: 0 }}>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '4px', background: 'var(--color-bg-3)', border: '1px solid var(--color-border-grey)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-dark)', flexShrink: 0 }}>
                                         <FaShareAlt />
                                     </div>
                                     <div style={{ overflow: 'hidden' }}>
                                         <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: 'var(--color-text-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {wf.name}
-                                            <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', background: wf.role === 'editor' ? '#dcfce7' : '#e0e7ff', color: wf.role === 'editor' ? '#16a34a' : '#4f46e5', marginLeft: '6px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                                            <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: 'var(--color-bg-3)', color: 'var(--color-text-grey)', border: '1px solid var(--color-border-grey)', marginLeft: '6px', fontWeight: 'bold', textTransform: 'uppercase' }}>
                                                 {wf.role}
                                             </span>
                                         </h4>
@@ -172,14 +172,14 @@ const Dashboard: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="workflow-item-actions">
-                                    <button style={{ border: '1px solid #d97706', background: 'transparent', color: '#d97706' }}>Open</button>
+                                    <button>Open</button>
                                 </div>
                             </motion.div>
                         ))}
                     </div>
                 ) : (
-                    <div className="empty-state" style={{ minHeight: '150px', background: '#f8fafc', border: '1px dashed #cbd5e1' }}>
-                        <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>No workflows have been shared with you yet.</p>
+                    <div className="empty-state" style={{ minHeight: '150px' }}>
+                        <p style={{ color: 'var(--color-text-grey)', fontSize: '0.9rem', margin: 0 }}>No workflows have been shared with you yet.</p>
                     </div>
                 )}
             </div>

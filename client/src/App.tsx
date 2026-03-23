@@ -15,10 +15,10 @@ const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'));
 
 // Loading fallback
 const PageLoader = () => (
-    <div style={{ display: 'grid', placeItems: 'center', height: '100vh', width: '100vw', background: 'var(--bg-1)' }}>
+    <div style={{ display: 'grid', placeItems: 'center', height: '100vh', width: '100vw', background: 'var(--color-bg-1)' }}>
         <div className="spinner" style={{ 
             width: '40px', height: '40px', border: '3px solid var(--color-border-grey)', 
-            borderTopColor: 'var(--color-accent-1)', borderRadius: '50%', animation: 'spin 1s linear infinite' 
+            borderTopColor: 'var(--color-text-dark)', borderRadius: '50%', animation: 'spin 1s linear infinite' 
         }} />
     </div>
 );
@@ -92,12 +92,12 @@ function App() {
 				position="bottom-right"
 				toastOptions={{
 					style: {
-						background: 'rgba(255, 255, 255, 0.95)',
+						background: 'var(--color-bg-2)',
 						color: 'var(--color-text-dark)',
-						backdropFilter: 'blur(10px)',
 						border: '1px solid var(--color-border-grey)',
 						fontFamily: '"Plus Jakarta Sans", sans-serif',
-						boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+						borderRadius: '4px',
+						boxShadow: 'none'
 					},
 				}}
 			/>

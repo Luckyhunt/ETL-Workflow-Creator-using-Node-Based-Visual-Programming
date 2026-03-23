@@ -13,6 +13,7 @@ import { useWorkflow } from "../../contexts/useWorkflow"
 import { useAuth } from "../../contexts/AuthContext"
 import { getWorkflowRole } from "../../utils/workflowPermissions"
 import type { WorkflowRole } from "../../utils/workflowPermissions"
+import { FaBolt } from "react-icons/fa"
 
 const Playground = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
   const [searchParams] = useSearchParams();
@@ -119,18 +120,21 @@ const Playground = ({ mode = 'private' }: { mode?: 'public' | 'private' }) => {
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {mode === 'public' && (
             <div style={{
-              background: 'linear-gradient(90deg, var(--color-accent-1), var(--color-accent-2))',
-              color: 'white', padding: '10px 20px', display: 'flex',
+              background: 'var(--color-bg-2)',
+              borderBottom: '1px solid var(--color-border-grey)',
+              color: 'var(--color-text-dark)', padding: '10px 20px', display: 'flex',
               justifyContent: 'center', alignItems: 'center', gap: '15px',
               fontSize: '0.9rem', fontWeight: '600', zIndex: 10,
-              boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+              boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
             }}>
-              <span>⚡ Playground Mode — Changes won't be saved.</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FaBolt /> Playground Mode — Changes won't be saved.
+              </span>
               <button
                 onClick={() => window.location.href = '/'}
                 style={{
-                  background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)',
-                  color: 'white', padding: '4px 12px', borderRadius: '6px',
+                  background: 'var(--color-bg-1)', border: '1px solid var(--color-border-grey)',
+                  color: 'var(--color-text-dark)', padding: '4px 12px', borderRadius: '6px',
                   cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', transition: 'all 0.2s'
                 }}
               >Login to Save</button>

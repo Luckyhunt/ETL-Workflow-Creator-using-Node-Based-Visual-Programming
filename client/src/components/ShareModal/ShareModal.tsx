@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { workflowApi } from '../../services/workflowApi';
-import { FaTimes, FaLink, FaUserPlus, FaTrash } from 'react-icons/fa';
+import { FaTimes, FaLink, FaUserPlus, FaTrash, FaCheckCircle, FaExclamationCircle, FaTimesCircle } from 'react-icons/fa';
 import { useConfirm } from '../../contexts/ConfirmContext';
 
 interface ShareModalProps {
@@ -46,13 +46,13 @@ const ShareModal: React.FC<ShareModalProps> = ({ workflowId, onClose }) => {
             await workflowApi.shareWorkflow(workflowId, email, role);
             setEmail('');
             await loadShares();
-            setFeedback({ message: 'Shared successfully ✅', type: 'success' });
+            setFeedback({ message: 'Shared successfully', type: 'success' });
         } catch (error: any) {
             const msg = error.message || '';
             if (msg.includes('unique') || msg.includes('Already shared')) {
-                setFeedback({ message: 'Already shared ⚠️', type: 'warning' });
+                setFeedback({ message: 'Already shared', type: 'warning' });
             } else if (msg.includes('not found')) {
-                setFeedback({ message: 'User not found ❌', type: 'error' });
+                setFeedback({ message: 'User not found', type: 'error' });
             } else {
                 setFeedback({ message: 'Error sharing: ' + msg, type: 'error' });
             }
@@ -92,19 +92,19 @@ const ShareModal: React.FC<ShareModalProps> = ({ workflowId, onClose }) => {
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
         }} onClick={onClose}>
             <div style={{
-                background: 'white', borderRadius: '16px', padding: '30px',
-                width: '90%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                background: 'var(--color-bg-1)', borderRadius: '4px', padding: '30px',
+                width: '90%', maxWidth: '500px', border: '1px solid var(--color-border-grey)',
                 position: 'relative'
             }} onClick={(e) => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.5rem', color: '#111827' }}>
-                        <FaUserPlus color="var(--color-accent-1)" /> Share Workflow
+                    <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.5rem', color: 'var(--color-text-dark)' }}>
+                        <FaUserPlus color="var(--color-text-dark)" /> Share Workflow
                     </h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#9ca3af', display: 'flex', padding: '5px' }}>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--color-text-grey)', display: 'flex', padding: '5px' }}>
                         <FaTimes />
                     </button>
                 </div>
@@ -112,15 +112,18 @@ const ShareModal: React.FC<ShareModalProps> = ({ workflowId, onClose }) => {
                 {feedback && (
                     <div style={{ 
                         padding: '10px 15px', 
-                        borderRadius: '8px', 
+                        borderRadius: '4px', 
                         marginBottom: '20px',
                         fontSize: '0.9rem',
                         textAlign: 'center',
-                        backgroundColor: feedback.type === 'success' ? '#ecfdf5' : feedback.type === 'warning' ? '#fffbeb' : '#fef2f2',
-                        color: feedback.type === 'success' ? '#065f46' : feedback.type === 'warning' ? '#92400e' : '#991b1b',
-                        border: `1px solid ${feedback.type === 'success' ? '#34d399' : feedback.type === 'warning' ? '#fbbf24' : '#f87171'}`
+                        backgroundColor: feedback.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : feedback.type === 'warning' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        color: feedback.type === 'success' ? 'var(--color-success-green)' : feedback.type === 'warning' ? '#facc15' : 'var(--color-delete-red)',
+                        border: `1px solid ${feedback.type === 'success' ? 'var(--color-success-green)' : feedback.type === 'warning' ? '#facc15' : 'var(--color-delete-red)'}`
                     }}>
-                        {feedback.message}
+                        {feedback.type === 'success' && <FaCheckCircle style={{ marginRight: '6px', verticalAlign: 'middle' }} />}
+                        {feedback.type === 'warning' && <FaExclamationCircle style={{ marginRight: '6px', verticalAlign: 'middle' }} />}
+                        {feedback.type === 'error' && <FaTimesCircle style={{ marginRight: '6px', verticalAlign: 'middle' }} />}
+                        <span style={{ verticalAlign: 'middle' }}>{feedback.message}</span>
                     </div>
                 )}
 
@@ -132,12 +135,12 @@ const ShareModal: React.FC<ShareModalProps> = ({ workflowId, onClose }) => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            style={{ flex: 1, padding: '12px 14px', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '0.95rem', outline: 'none' }}
+                            style={{ flex: 1, padding: '12px 14px', border: '1px solid var(--color-border-grey)', borderRadius: '4px', background: 'var(--color-bg-2)', color: 'var(--color-text-dark)', fontSize: '0.95rem', outline: 'none' }}
                         />
                         <select 
                             value={role} 
                             onChange={(e) => setRole(e.target.value as any)}
-                            style={{ padding: '10px', border: '1px solid #d1d5db', borderRadius: '10px', background: 'white', cursor: 'pointer', outline: 'none' }}
+                            style={{ padding: '10px', border: '1px solid var(--color-border-grey)', borderRadius: '4px', background: 'var(--color-bg-2)', color: 'var(--color-text-dark)', cursor: 'pointer', outline: 'none' }}
                         >
                             <option value="viewer">Viewer</option>
                             <option value="editor">Editor</option>
@@ -148,10 +151,10 @@ const ShareModal: React.FC<ShareModalProps> = ({ workflowId, onClose }) => {
                         disabled={isLoading}
                         style={{ 
                             padding: '12px', 
-                            background: 'var(--color-accent-1)', 
-                            color: 'white', 
-                            border: 'none', 
-                            borderRadius: '10px', 
+                            background: 'var(--color-text-dark)', 
+                            color: 'var(--color-bg-1)', 
+                            border: '1px solid var(--color-text-dark)', 
+                            borderRadius: '4px', 
                             cursor: 'pointer', 
                             fontWeight: 'bold', 
                             fontSize: '1rem',
@@ -162,20 +165,20 @@ const ShareModal: React.FC<ShareModalProps> = ({ workflowId, onClose }) => {
                     </button>
                 </form>
 
-                <h3 style={{ fontSize: '1rem', marginBottom: '15px', color: '#374151', fontWeight: '600' }}>Collaborators</h3>
+                <h3 style={{ fontSize: '1rem', marginBottom: '15px', color: 'var(--color-text-dark)', fontWeight: '600' }}>Collaborators</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto', marginBottom: '25px', paddingRight: '5px' }}>
                     {shares.length === 0 ? (
-                        <div style={{ color: '#9ca3af', fontSize: '0.9rem', fontStyle: 'italic', textAlign: 'center', padding: '10px' }}>Only you have access.</div>
+                        <div style={{ color: 'var(--color-text-grey)', fontSize: '0.9rem', fontStyle: 'italic', textAlign: 'center', padding: '10px' }}>Only you have access.</div>
                     ) : (
                         shares.map((share) => (
-                            <div key={share.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 15px', background: '#f9fafb', borderRadius: '10px', border: '1px solid #f3f4f6' }}>
+                            <div key={share.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 15px', background: 'var(--color-bg-2)', borderRadius: '4px', border: '1px solid var(--color-border-grey)' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span style={{ fontWeight: '600', fontSize: '0.9rem', color: '#111827' }}>{share.shared_with_email}</span>
-                                    <span style={{ fontSize: '0.8rem', color: '#6b7280', textTransform: 'capitalize' }}>{share.role}</span>
+                                    <span style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--color-text-dark)' }}>{share.shared_with_email}</span>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-grey)', textTransform: 'capitalize' }}>{share.role}</span>
                                 </div>
                                 <button 
                                     onClick={() => handleRemoveShare(share.id)}
-                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '8px', display: 'flex', borderRadius: '50%' }}
+                                    style={{ background: 'none', border: 'none', color: 'var(--color-delete-red)', cursor: 'pointer', padding: '8px', display: 'flex', borderRadius: '50%' }}
                                     title="Remove Access"
                                 >
                                     <FaTrash size={14} />
@@ -185,7 +188,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ workflowId, onClose }) => {
                     )}
                 </div>
 
-                <div style={{ paddingTop: '20px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'center' }}>
+                <div style={{ paddingTop: '20px', borderTop: '1px solid var(--color-border-grey)', display: 'flex', justifyContent: 'center' }}>
                     <button 
                         onClick={copyLink}
                         style={{ 
@@ -193,10 +196,10 @@ const ShareModal: React.FC<ShareModalProps> = ({ workflowId, onClose }) => {
                             alignItems: 'center', 
                             gap: '8px', 
                             padding: '10px 20px', 
-                            background: 'white', 
-                            color: 'var(--color-accent-1)', 
-                            border: '1px solid var(--color-accent-1)', 
-                            borderRadius: '10px', 
+                            background: 'transparent', 
+                            color: 'var(--color-text-dark)', 
+                            border: '1px solid var(--color-text-dark)', 
+                            borderRadius: '4px', 
                             cursor: 'pointer', 
                             fontWeight: '600',
                             fontSize: '0.9rem',

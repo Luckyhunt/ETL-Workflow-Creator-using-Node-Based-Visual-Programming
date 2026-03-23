@@ -11,7 +11,7 @@ import "./Sidebar.css"
 import { LuFileInput } from "react-icons/lu"
 import { IoSettingsOutline } from "react-icons/io5"
 import { HiLightningBolt } from "react-icons/hi";
-import { FaPlay, FaCheck, FaTimes } from "react-icons/fa";
+import { FaPlay, FaCheck, FaTimes, FaTrash, FaSync } from "react-icons/fa";
 import { FaShareFromSquare } from "react-icons/fa6";
 import { MdSave } from "react-icons/md";
 import { MdBarChart } from "react-icons/md";
@@ -40,6 +40,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
     const [showGraphDisplay, setShowGraphDisplay] = useState<boolean>(false)
     const [showShareModal, setShowShareModal] = useState<boolean>(false)
     const [isSaving, setIsSaving] = useState(false);
+    const [isGeneratingGraph, setIsGeneratingGraph] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
     const navigate = useNavigate()
     const [searchParams] = useSearchParams();
@@ -227,7 +228,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                 });
 
                 console.log("All execution results processed.");
-                toast.success("Execution completed successfully! ✅");
+                toast.success("Execution completed successfully!");
             } else {
                 const errorMsg = data?.error ||  "Execution failed without a specific error message.";
                 console.error("Execution error:", errorMsg);
@@ -279,8 +280,8 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                     graphWindow.document.write(`
                         <html>
                             <head><title>Workflow Graph</title></head>
-                            <body style="margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#f0f0f0;">
-                                <img src="${result.graph_url}" style="max-width:100%;max-height:100%;" />
+                            <body style="margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#000000;">
+                                <img src="${result.graph_url}" style="max-width:100%;max-height:100%;border:1px solid #2a2a2a;border-radius:4px" />
                             </body>
                         </html>
                     `);
@@ -346,7 +347,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
             }
             
             setSaveStatus('success');
-            toast.success("Workflow Saved Successfully! ✅");
+            toast.success("Workflow Saved Successfully!");
             setTimeout(() => setSaveStatus('idle'), 3000);
             
         } catch (error: any) {
@@ -413,15 +414,14 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                                 <button 
                                     onClick={() => navigate('/')}
                                     style={{
-                                        background: 'linear-gradient(37deg, var(--color-accent-1), var(--color-accent-2))',
-                                        color: 'white',
-                                        border: 'none',
+                                        background: 'transparent',
+                                        color: 'var(--color-text-dark)',
+                                        border: '1px solid var(--color-text-dark)',
                                         padding: '8px',
-                                        borderRadius: '8px',
+                                        borderRadius: '4px',
                                         fontSize: '0.8rem',
                                         fontWeight: '700',
-                                        cursor: 'pointer',
-                                        boxShadow: '0 4px 10px var(--color-accent-1-light)'
+                                        cursor: 'pointer'
                                     }}
                                 >
                                     Login to Save
@@ -561,8 +561,8 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                                 >
                                     <span className="icon"><MdSave /></span> 
                                     {saveStatus === 'saving' ? 'Saving...' : 
-                                     saveStatus === 'success' ? 'Saved ✅' : 
-                                     saveStatus === 'error' ? 'Failed ❌' : 
+                                     saveStatus === 'success' ? <><FaCheck /> Saved</> : 
+                                     saveStatus === 'error' ? <><FaTimes /> Failed</> : 
                                      'Save Workflow'}
                                 </button>
                             </li>
@@ -626,7 +626,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                                         alert("Failed to delete draft.");
                                     }
                                 }}>
-                                    <span className="icon">🗑️</span> Delete Draft
+                                    <span className="icon"><FaTrash /></span> Delete Draft
                                 </button>
                             </li>
                         )}
@@ -643,7 +643,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                                         window.location.reload();
                                     }
                                 }}>
-                                    <span className="icon">🔄</span> Reset Playground
+                                    <span className="icon"><FaSync /></span> Reset Playground
                                 </button>
                             </li>
                         )}
@@ -663,28 +663,30 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: 'rgba(0,0,0,0.4)',
+                backgroundColor: 'rgba(0,0,0,0.7)',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
                 zIndex: 1000
             }}>
                 <div style={{
-                    backgroundColor: '#ffffff',
+                    backgroundColor: 'var(--color-bg-1)',
                     padding: '0',
-                    borderRadius: '12px',
+                    borderRadius: '4px',
                     minWidth: '350px',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+                    width: '90%',
+                    maxWidth: '400px',
+                    border: '1px solid var(--color-border-grey)',
                     overflow: 'hidden'
                 }}>
                     <div style={{
-                        backgroundColor: '#f8fafc',
+                        backgroundColor: 'var(--color-bg-2)',
                         padding: '20px',
-                        borderBottom: '1px solid #e5e7eb'
+                        borderBottom: '1px solid var(--color-border-grey)'
                     }}>
                         <h3 style={{
                             margin: 0,
-                            color: '#1f2937',
+                            color: 'var(--color-text-dark)',
                             fontSize: '18px',
                             fontWeight: '600'
                         }}>Graph Configuration</h3>
@@ -693,7 +695,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                     <div style={{ padding: '20px' }}>
                         <div style={{ marginBottom: '15px' }}>
                             <label style={{
-                                color: '#6b7280',
+                                color: 'var(--color-text-grey)',
                                 fontSize: '12px',
                                 textTransform: 'uppercase',
                                 fontWeight: '600',
@@ -719,10 +721,10 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                                     width: '100%',
                                     padding: '10px',
                                     marginTop: '6px',
-                                    backgroundColor: '#ffffff',
-                                    color: '#1f2937',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '6px',
+                                    backgroundColor: 'var(--color-bg-3)',
+                                    color: 'var(--color-text-dark)',
+                                    border: '1px solid var(--color-border-grey)',
+                                    borderRadius: '4px',
                                     fontSize: '14px'
                                 }}
                             >
@@ -736,7 +738,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
 
                         <div style={{ marginBottom: '15px' }}>
                             <label style={{
-                                color: '#6b7280',
+                                color: 'var(--color-text-grey)',
                                 fontSize: '12px',
                                 textTransform: 'uppercase',
                                 fontWeight: '600',
@@ -749,10 +751,10 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                                     width: '100%',
                                     padding: '10px',
                                     marginTop: '6px',
-                                    backgroundColor: '#ffffff',
-                                    color: '#1f2937',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '6px',
+                                    backgroundColor: 'var(--color-bg-3)',
+                                    color: 'var(--color-text-dark)',
+                                    border: '1px solid var(--color-border-grey)',
+                                    borderRadius: '4px',
                                     fontSize: '14px'
                                 }}
                             >
@@ -766,7 +768,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
 
                         <div style={{ marginBottom: '15px' }}>
                             <label style={{
-                                color: '#6b7280',
+                                color: 'var(--color-text-grey)',
                                 fontSize: '12px',
                                 textTransform: 'uppercase',
                                 fontWeight: '600',
@@ -779,10 +781,10 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                                     width: '100%',
                                     padding: '10px',
                                     marginTop: '6px',
-                                    backgroundColor: '#ffffff',
-                                    color: '#1f2937',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '6px',
+                                    backgroundColor: 'var(--color-bg-3)',
+                                    color: 'var(--color-text-dark)',
+                                    border: '1px solid var(--color-border-grey)',
+                                    borderRadius: '4px',
                                     fontSize: '14px'
                                 }}
                             >
@@ -794,7 +796,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
 
                         <div style={{ marginBottom: '20px' }}>
                             <label style={{
-                                color: '#6b7280',
+                                color: 'var(--color-text-grey)',
                                 fontSize: '12px',
                                 textTransform: 'uppercase',
                                 fontWeight: '600',
@@ -807,10 +809,10 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                                     width: '100%',
                                     padding: '10px',
                                     marginTop: '6px',
-                                    backgroundColor: '#ffffff',
-                                    color: '#1f2937',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '6px',
+                                    backgroundColor: 'var(--color-bg-3)',
+                                    color: 'var(--color-text-dark)',
+                                    border: '1px solid var(--color-border-grey)',
+                                    borderRadius: '4px',
                                     fontSize: '14px'
                                 }}
                             >
@@ -859,6 +861,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                                     }
 
                                     try {
+                                        setIsGeneratingGraph(true);
                                         const result = await workflowExecutionService.generateGraph(
                                             processedData,
                                             graphType,
@@ -878,31 +881,35 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                                     } catch (error) {
                                         console.error('Error generating graph:', error);
                                         alert('Error generating graph. Check backend.');
+                                    } finally {
+                                        setIsGeneratingGraph(false);
                                     }
                                 }}
+                                disabled={isGeneratingGraph}
                                 style={{
                                     flex: 1,
                                     padding: '12px',
-                                    backgroundColor: '#3b82f6',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '6px',
+                                    backgroundColor: 'var(--color-text-dark)',
+                                    color: 'var(--color-bg-1)',
+                                    border: '1px solid var(--color-text-dark)',
+                                    borderRadius: '4px',
                                     fontSize: '14px',
                                     fontWeight: '600',
-                                    cursor: 'pointer'
+                                    cursor: isGeneratingGraph ? 'not-allowed' : 'pointer',
+                                    opacity: isGeneratingGraph ? 0.7 : 1
                                 }}
                             >
-                                Generate Graph
+                                {isGeneratingGraph ? 'Generating...' : 'Generate Graph'}
                             </button>
                             <button
                                 onClick={() => setShowGraphModal(false)}
                                 style={{
                                     flex: 1,
                                     padding: '12px',
-                                    backgroundColor: '#f3f4f6',
-                                    color: '#4b5563',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '6px',
+                                    backgroundColor: 'transparent',
+                                    color: 'var(--color-text-dark)',
+                                    border: '1px solid var(--color-border-grey)',
+                                    borderRadius: '4px',
                                     fontSize: '14px',
                                     fontWeight: '600',
                                     cursor: 'pointer'
@@ -924,19 +931,20 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: 'rgba(0,0,0,0.6)',
+                backgroundColor: 'rgba(0,0,0,0.7)',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
                 zIndex: 1001
             }}>
                 <div style={{
-                    backgroundColor: '#ffffff',
+                    backgroundColor: 'var(--color-bg-1)',
                     padding: '20px',
-                    borderRadius: '12px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--color-border-grey)',
+                    width: '90%',
                     maxWidth: '90vw',
                     maxHeight: '90vh',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center'
@@ -948,7 +956,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                         width: '100%',
                         marginBottom: '15px'
                     }}>
-                        <h3 style={{ margin: 0, color: '#1f2937' }}>Generated Graph</h3>
+                        <h3 style={{ margin: 0, color: 'var(--color-text-dark)' }}>Generated Graph</h3>
                         <button
                             onClick={() => setShowGraphDisplay(false)}
                             style={{
@@ -956,7 +964,7 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                                 border: 'none',
                                 fontSize: '20px',
                                 cursor: 'pointer',
-                                color: '#6b7280'
+                                color: 'var(--color-text-grey)'
                             }}
                         >
                             ✕
@@ -982,12 +990,13 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                             }}
                             style={{
                                 padding: '10px 20px',
-                                backgroundColor: '#3b82f6',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '6px',
+                                backgroundColor: 'var(--color-text-dark)',
+                                color: 'var(--color-bg-1)',
+                                border: '1px solid var(--color-text-dark)',
+                                borderRadius: '4px',
                                 cursor: 'pointer',
-                                fontSize: '14px'
+                                fontSize: '14px',
+                                fontWeight: 'bold'
                             }}
                         >
                             Download
@@ -996,12 +1005,13 @@ const Sidebar = ({ mode = 'private', role = 'owner' }: { mode?: 'public' | 'priv
                             onClick={() => setShowGraphDisplay(false)}
                             style={{
                                 padding: '10px 20px',
-                                backgroundColor: '#f3f4f6',
-                                color: '#4b5563',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '6px',
+                                backgroundColor: 'transparent',
+                                color: 'var(--color-text-dark)',
+                                border: '1px solid var(--color-border-grey)',
+                                borderRadius: '4px',
                                 cursor: 'pointer',
-                                fontSize: '14px'
+                                fontSize: '14px',
+                                fontWeight: 'bold'
                             }}
                         >
                             Close

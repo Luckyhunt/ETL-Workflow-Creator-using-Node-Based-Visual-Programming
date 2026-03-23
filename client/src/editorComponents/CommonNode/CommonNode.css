@@ -1,35 +1,30 @@
 .common-node {
     position: absolute;
     user-select: none;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px); /* Safari support */
+    border: 1px solid var(--color-border-grey);
+    border-radius: 4px;
+    background: var(--color-bg-1);
     width: 300px;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
     animation-name: appear;
     animation-duration: 0.2s;
     animation-timing-function: ease-in-out;
     animation-iteration-count: 1;
     animation-fill-mode: forwards;
-    /* transition: all 0.3s ease; */
 }
 
 .common-node.selected {
-    outline: 2px solid var(--color-accent-1);
-    box-shadow: 0 0 20px rgba(82, 69, 229, 0.5), 0 8px 32px 0 rgba(31, 38, 135, 0.3);
-    transform: scale(1.02);
+    border-color: #6366f1;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), 0 0 0 1px #6366f1;
 }
 
 .common-node-header {
     height: 50px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    border-bottom: 1px solid var(--color-border-grey);
     display: flex;
     align-items: center;
     padding: 20px 5px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 9px 9px 0 0;
+    background: var(--color-bg-2);
+    border-radius: 4px 4px 0 0;
 }
 
 .common-node-title {
@@ -45,35 +40,48 @@
 .common-node-delete {
     display: grid;
     place-items: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
     outline: none;
-    border: none;
-    font-size: 1.5rem;
-    background: linear-gradient(45deg, var(--color-delete-red), var(--color-delete-red-light));
-    color: white;
+    border: 1px solid transparent;
+    font-size: 1.1rem;
+    background: transparent;
+    color: var(--color-text-grey);
     margin-right: 10px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.common-node-delete:hover {
+    color: var(--color-text-dark);
+    border: 1px solid var(--color-border-grey);
+    background: var(--color-bg-3);
 }
 
 .common-node-body {
     padding: 20px;
     display: grid;
     color: var(--color-text-dark);
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 0 0 9px 9px;
+    background: var(--color-bg-1);
+    border-radius: 0 0 4px 4px;
 }
 
 .common-node-port {
     position: absolute;
     top: 20px;
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    background: var(--color-accent-2);
-    box-shadow: 0 0 5px rgba(170, 69, 229, 0.7);
-    border: 1px solid white;
+    background: var(--color-bg-1);
+    border: 2px solid var(--color-border-grey);
     z-index: 10;
+    transition: all 0.2s;
+}
+
+.common-node-port:hover {
+    border-color: var(--color-text-dark);
+    background: var(--color-text-dark);
 }
 
 .common-node-port.input-port {
@@ -88,31 +96,35 @@
     width: 120px;
     height: 40px;
     border: 1px solid var(--color-border-grey);
+    background: var(--color-bg-2);
     outline: none;
     margin: 10px 0;
-    border-radius: 10px;
-    accent-color: var(--color-accent-2);
-    font-family: "Plus Jakarta Sans", sans-serif;
+    border-radius: 4px;
+    font-family: inherit;
     padding-left: 10px;
     color: var(--color-text-dark);
-    /* font-weight: bolder; */
     text-transform: uppercase;
 }
 
 .common-node-input {
     height: 40px;
     border: 1px solid var(--color-border-grey);
+    background: var(--color-bg-2);
     outline: none;
-    border-radius: 10px;
-    accent-color: var(--color-accent-2);
-    font-family: "Plus Jakarta Sans", sans-serif;
+    border-radius: 4px;
+    font-family: inherit;
     padding-left: 10px;
     margin: 10px 0;
     color: var(--color-text-dark);
     font-size: 1.05rem;
 }
 
+.common-node-input:focus, .common-node-select:focus {
+    border-color: var(--color-text-dark);
+}
+
 .common-node-input::placeholder {
+    color: var(--color-text-grey);
     font-style: italic;
     font-size: 1rem;
     font-weight: lighter;
@@ -128,6 +140,7 @@
     height: 50px;
     border-left: 1px solid var(--color-border-grey);
     background: var(--color-bg-1);
+    color: var(--color-text-dark);
 }
 
 .common-node-icon {
@@ -148,7 +161,7 @@
 @keyframes appear {
     0% {
         opacity: 0;
-        transform: scale(0.5);
+        transform: scale(0.95);
     } 
     100% {
         opacity: 1;

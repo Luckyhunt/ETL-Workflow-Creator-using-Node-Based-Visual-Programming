@@ -1,5 +1,5 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { FloatingJobWidget } from './components/FloatingJobWidget/FloatingJobWidget';
 import './App.css'
 
@@ -85,6 +85,23 @@ const router = createBrowserRouter([
 import { Toaster } from 'react-hot-toast';
 
 function App() {
+	useEffect(() => {
+		const loader = document.getElementById('initial-loader');
+		if (loader) {
+			const startTime = (window as any).loaderStartTime || Date.now();
+			const elapsed = Date.now() - startTime;
+			const minDuration = 500; // Ensure loader shows for a minimum time
+			const timeToWait = Math.max(0, minDuration - elapsed);
+
+			setTimeout(() => {
+				loader.classList.add('fade-out');
+				setTimeout(() => {
+					loader.remove();
+				}, 500); // 500ms for transition duration
+			}, timeToWait);
+		}
+	}, []);
+
 	return (
 		<div className="app">
 			<RouterProvider router={router} />

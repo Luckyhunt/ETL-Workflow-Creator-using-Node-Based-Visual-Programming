@@ -5,6 +5,7 @@ import { FaGoogle, FaTimes, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { supabase } from '../../services/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import Logo from '../../images/logo.svg';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -157,8 +158,28 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                     transition={{ duration: 0.2 }}
                                 >
                                     <div className="auth-modal-header">
+                                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                                            <img src={Logo} alt="NodeFlow Logo" style={{ width: '48px', height: '48px' }} />
+                                        </div>
                                         <h2>{view === 'login' ? 'Welcome Back' : 'Create Account'}</h2>
                                         <p>{view === 'login' ? 'Sign in to orchestrate your data.' : 'Join to build powerful ETL workflows.'}</p>
+                                        <div className="trust-badge" style={{
+                                            marginTop: '15px',
+                                            padding: '12px',
+                                            backgroundColor: 'rgba(79, 70, 229, 0.05)',
+                                            border: '1px solid rgba(79, 70, 229, 0.2)',
+                                            borderRadius: '8px',
+                                            textAlign: 'left'
+                                        }}>
+                                            <div style={{ color: '#4f46e5', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+                                                🔒 Secure authentication powered by Supabase
+                                            </div>
+                                            <ul style={{ margin: 0, paddingLeft: '20px', color: '#94a3b8', fontSize: '12px', lineHeight: 1.5 }}>
+                                                <li>Data is protected by enterprise-grade security.</li>
+                                                <li>Authentication is securely handled via Google OAuth & Supabase.</li>
+                                                <li>We do not harvest, store, or access your raw passwords.</li>
+                                            </ul>
+                                        </div>
                                     </div>
 
                                     <div className="auth-modal-tabs">
@@ -227,7 +248,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                     </div>
 
                                     <button className="auth-modal-google" onClick={handleGoogleLogin}>
-                                        <FaGoogle /> Google
+                                        <FaGoogle /> Continue with Google
                                     </button>
                                 </motion.div>
                             )}

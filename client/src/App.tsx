@@ -11,6 +11,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
 const WorkflowsList = lazy(() => import('./pages/Dashboard/WorkflowsList'));
 const Settings = lazy(() => import('./pages/Dashboard/Settings'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy/PrivacyPolicy'));
 const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'));
 
 // Loading fallback
@@ -31,6 +32,10 @@ const router = createBrowserRouter([
   {
     path: '/reset-password',
     element: <Suspense fallback={<PageLoader />}><ResetPassword /></Suspense>
+  },
+  {
+    path: '/privacy',
+    element: <Suspense fallback={<PageLoader />}><PrivacyPolicy /></Suspense>
   },
   {
     path: '/editor',

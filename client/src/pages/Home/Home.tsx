@@ -3,6 +3,7 @@ import { useState } from "react"
 
 import "./Home.css"
 import AuthModal from "../../components/AuthModal/AuthModal"
+import Footer from "../../components/Footer/Footer"
 
 import Logo from "../../images/logo.svg"
 
@@ -108,6 +109,7 @@ const Home = () => {
             </div>
 
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+            <Footer />
         </div>
     )
 }

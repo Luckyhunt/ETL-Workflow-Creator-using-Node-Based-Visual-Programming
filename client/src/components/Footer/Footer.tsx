@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './Footer.css';
 import Logo from '../../images/logo.svg';
+import { FaLock } from 'react-icons/fa';
 
 const Footer: React.FC = () => {
     return (
@@ -24,8 +25,8 @@ const Footer: React.FC = () => {
             </div>
             
             <div className="footer-bottom">
-                <div className="footer-disclaimer" style={{ backgroundColor: 'transparent', border: 'none', color: '#94a3b8', padding: '0', fontSize: '13px' }}>
-                    🔒 <strong>Secure authentication powered by Google OAuth & Supabase</strong><br/>
+                <div className="footer-disclaimer" style={{ backgroundColor: 'transparent', border: 'none', color: '#94a3b8', padding: '0', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                    <FaLock /> <strong>Secure authentication powered by Google OAuth & Supabase</strong><br/>
                     We prioritize your security. No raw passwords are ever stored on our servers.
                 </div>
                 <div className="footer-copyright">

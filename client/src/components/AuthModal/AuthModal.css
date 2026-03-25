@@ -17,11 +17,28 @@
     background: var(--color-bg-1);
     width: 100%;
     max-width: 420px;
-    border-radius: 4px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 12px;
     padding: 32px;
     border: 1px solid var(--color-border-grey);
     position: relative;
     animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-grey) transparent;
+}
+
+.auth-modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.auth-modal-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.auth-modal-content::-webkit-scrollbar-thumb {
+    background-color: var(--color-border-grey);
+    border-radius: 10px;
 }
 
 .auth-modal-close {
@@ -288,4 +305,14 @@
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 480px) {
+    .auth-modal-content {
+        padding: 24px 20px;
+        width: calc(100% - 32px);
+    }
+    .auth-modal-header h2 {
+        font-size: 1.5rem;
+    }
 }

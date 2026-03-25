@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './AuthModal.css';
-import { FaGoogle, FaTimes, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaGoogle, FaTimes, FaEye, FaEyeSlash, FaLock } from 'react-icons/fa';
 import { supabase } from '../../services/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -171,8 +171,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                                             borderRadius: '8px',
                                             textAlign: 'left'
                                         }}>
-                                            <div style={{ color: '#4f46e5', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
-                                                🔒 Secure authentication powered by Supabase
+                                            <div style={{ color: '#4f46e5', fontSize: '13px', fontWeight: 600, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <FaLock /> Secure authentication powered by Supabase
                                             </div>
                                             <ul style={{ margin: 0, paddingLeft: '20px', color: '#94a3b8', fontSize: '12px', lineHeight: 1.5 }}>
                                                 <li>Data is protected by enterprise-grade security.</li>

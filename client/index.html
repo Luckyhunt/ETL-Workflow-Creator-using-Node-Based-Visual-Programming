@@ -6,6 +6,10 @@
   <link rel="icon" type="image/svg+xml" href="/src/images/logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NodeFlow</title>
+  <meta name="description"
+    content="Create, manage and visualize ETL workflows easily. A powerful tool for building data pipelines with a modern UI.">
+  <meta name="keywords"
+    content="ETL tool, workflow creator, data pipeline builder, ETL visualization, node-based workflow">
   <style>
     #initial-loader {
       position: fixed;
@@ -24,16 +28,19 @@
       transition: opacity 0.5s ease, visibility 0.5s ease;
       font-family: 'Inter', system-ui, sans-serif;
     }
+
     #initial-loader.fade-out {
       opacity: 0;
       visibility: hidden;
     }
+
     .pipeline-loader {
       display: flex;
       align-items: center;
       gap: 16px;
       margin-bottom: 24px;
     }
+
     .initial-node {
       width: 48px;
       height: 48px;
@@ -44,8 +51,9 @@
       justify-content: center;
       align-items: center;
       position: relative;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
+
     .initial-node::after {
       content: '';
       width: 12px;
@@ -56,9 +64,23 @@
       animation: initial-pulse 1.5s infinite;
       opacity: 0.2;
     }
-    .initial-node:nth-child(1)::after { animation-delay: 0s; }
-    .initial-node:nth-child(3)::after { animation-delay: 0.5s; background: #0ea5e9; box-shadow: 0 0 10px #0ea5e9;}
-    .initial-node:nth-child(5)::after { animation-delay: 1s; background: #10b981; box-shadow: 0 0 10px #10b981;}
+
+    .initial-node:nth-child(1)::after {
+      animation-delay: 0s;
+    }
+
+    .initial-node:nth-child(3)::after {
+      animation-delay: 0.5s;
+      background: #0ea5e9;
+      box-shadow: 0 0 10px #0ea5e9;
+    }
+
+    .initial-node:nth-child(5)::after {
+      animation-delay: 1s;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+    }
+
     .initial-edge {
       width: 40px;
       height: 2px;
@@ -66,6 +88,7 @@
       position: relative;
       overflow: hidden;
     }
+
     .initial-edge::after {
       content: '';
       position: absolute;
@@ -73,28 +96,59 @@
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
       animation: initial-flow 1.5s infinite linear;
     }
-    .initial-edge:nth-child(2)::after { animation-delay: 0.2s; }
-    .initial-edge:nth-child(4)::after { animation-delay: 0.7s; }
+
+    .initial-edge:nth-child(2)::after {
+      animation-delay: 0.2s;
+    }
+
+    .initial-edge:nth-child(4)::after {
+      animation-delay: 0.7s;
+    }
+
     .initial-loader-text {
       color: #94a3b8;
       font-size: 14px;
       letter-spacing: 0.5px;
       animation: initial-float 2s infinite ease-in-out;
     }
+
     @keyframes initial-pulse {
-      0%, 100% { transform: scale(0.8); opacity: 0.2; }
-      50% { transform: scale(1.2); opacity: 1; }
+
+      0%,
+      100% {
+        transform: scale(0.8);
+        opacity: 0.2;
+      }
+
+      50% {
+        transform: scale(1.2);
+        opacity: 1;
+      }
     }
+
     @keyframes initial-flow {
-      0% { left: -100%; }
-      100% { left: 100%; }
+      0% {
+        left: -100%;
+      }
+
+      100% {
+        left: 100%;
+      }
     }
+
     @keyframes initial-float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-4px);
+      }
     }
   </style>
   <script>
